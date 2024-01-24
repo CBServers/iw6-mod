@@ -20,6 +20,8 @@ Only x64 is supported. Do not attempt to build for Windows ARM 64.
 | `--copy-to=PATH`            | Optional, copy the EXE to a custom folder after build, define the path here if wanted. |
 | `--dev-build`               | Enable development builds of the client. |
 
+## Contributing
+
 Contributions are welcome! Please follow the guidelines below:
 
 - Sign [AlterWare CLA][cla-link] and send a pull request or email your patch at patches@alterware.dev
