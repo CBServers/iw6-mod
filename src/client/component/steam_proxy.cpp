@@ -72,14 +72,18 @@ namespace steam_proxy
 			}
 		}
 
+#ifdef LOAD_STEAM_OVERLAY
 		[[nodiscard]] const utils::nt::library& get_overlay_module() const
 		{
 			return steam_overlay_module_;
 		}
+#endif
 
 	private:
 		utils::nt::library steam_client_module_{};
+#ifdef LOAD_STEAM_OVERLAY
 		utils::nt::library steam_overlay_module_{};
+#endif
 
 		steam::interface client_engine_{};
 		steam::interface client_user_{};
@@ -109,7 +113,9 @@ namespace steam_proxy
 
 			utils::nt::library::load(steam_path / "tier0_s64.dll");
 			utils::nt::library::load(steam_path / "vstdlib_s64.dll");
+#ifdef LOAD_STEAM_OVERLAY
 			this->steam_overlay_module_ = utils::nt::library::load(steam_path / "gameoverlayrenderer64.dll");
+#endif
 			this->steam_client_module_ = utils::nt::library::load(steam_path / "steamclient64.dll");
 			if (!this->steam_client_module_) return;
 
