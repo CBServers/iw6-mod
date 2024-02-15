@@ -82,6 +82,9 @@ namespace steam
 				result_handlers_[result.call]->run(result.data, false, result.call);
 			}
 
+			// Reportedly this can cause issues and crashes. Considering the great lack of any Steam features in this client disabling this
+			// shouldn't be a problem
+#if 0
 			for (const auto& callback : callback_list_)
 			{
 				if (callback && callback->get_i_callback() == result.type)
@@ -89,10 +92,11 @@ namespace steam
 					callback->run(result.data, false, 0);
 				}
 			}
+#endif
 
 			if (result.data)
 			{
-				free(result.data);
+				std::free(result.data);
 			}
 		}
 
@@ -149,14 +153,12 @@ namespace steam
 			}
 
 			HKEY reg_key;
-			if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "Software\\WOW6432Node\\Valve\\Steam", 0, KEY_QUERY_VALUE,
-				&reg_key) ==
-				ERROR_SUCCESS)
+			if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "Software\\WOW6432Node\\Valve\\Steam", 0, KEY_QUERY_VALUE, &reg_key) == ERROR_SUCCESS)
 			{
-				char path[MAX_PATH] = { 0 };
+				char path[MAX_PATH]{};
 				DWORD length = sizeof(path);
 				RegQueryValueExA(reg_key, "InstallPath", nullptr, nullptr, reinterpret_cast<BYTE*>(path),
-					&length);
+				                 &length);
 				RegCloseKey(reg_key);
 
 				install_path = path;
@@ -164,7 +166,6 @@ namespace steam
 
 			return install_path.data();
 		}
-
 
 		bool SteamGameServer_Init()
 		{
@@ -178,7 +179,6 @@ namespace steam
 		void SteamGameServer_Shutdown()
 		{
 		}
-
 
 		friends* SteamFriends()
 		{
