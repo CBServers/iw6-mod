@@ -9,7 +9,7 @@ This is a client modification for IW6!
 - Clone this repository using [Git][git-link]
 - Update the submodules using ``git submodule update --init --recursive``
 - Run Premake with this options ``premake5 vs2022`` (Visual Studio 2022). No other build systems are supported.
-- Build project via solution file in `build\s1-mod.sln`.
+- Build project via solution file in `build\iw6-mod.sln`.
 
 Only x64 is supported. Do not attempt to build for Windows ARM 64.
 
