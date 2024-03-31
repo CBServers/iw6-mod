@@ -94,6 +94,11 @@ namespace network
 			// Rather than try and let the player in, just tell them they are a duplicate player and reject connection
 			game::NET_OutOfBandPrint(game::NS_SERVER, from, "error\nYou are already connected to the server.");
 		}
+
+		void* memmove_stub(void* dest, const void* src, std::size_t count)
+		{
+			return std::memmove(dest, src, std::min<std::size_t>(count, 1262));
+		}
 	}
 
 	void on(const std::string& command, const callback& callback)
@@ -278,6 +283,11 @@ namespace network
 
 				// ignore built in "print" oob command for security reasons
 				utils::hook::set<std::uint8_t>(0x1402C6AA4, 0xEB);
+
+				// patch buffer overflow
+				utils::hook::call(0x14041D355, memmove_stub);
+				// this patches a crash found in a subroutine registered using atexit
+				utils::hook::set<std::uint8_t>(0x140815D4E, 0xEB);
 			}
 		}
 	};
