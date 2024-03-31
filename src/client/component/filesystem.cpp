@@ -25,6 +25,12 @@ namespace filesystem
 			return search_paths;
 		}
 
+		const char* sys_default_install_path_stub()
+		{
+			static auto current_path = std::filesystem::current_path().string();
+			return current_path.data();
+		}
+
 		std::string get_binary_directory()
 		{
 			const auto dir = game_module::get_host_module().get_folder();
@@ -263,6 +269,10 @@ namespace filesystem
 		{
 			// Set fs_basegame
 			utils::hook::inject(SELECT_VALUE(0x14041C053, 0x1404DDA13), "iw6");
+
+#ifndef INJECT_HOST_AS_LIB
+			utils::hook::jump(SELECT_VALUE(0x1404351B0, 0x1404F96C0), sys_default_install_path_stub);
+#endif
 
 			if (game::environment::is_sp())
 			{

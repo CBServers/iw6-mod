@@ -13,8 +13,6 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-#include <version.hpp>
-
 namespace dedicated
 {
 	namespace
@@ -103,12 +101,6 @@ namespace dedicated
 			*reinterpret_cast<int*>(0x144DB8C88) = 1; // sv_loadScripts
 			*reinterpret_cast<int*>(0x144DB8C8C) = 0; // sv_migrate
 			reinterpret_cast<void(*)()>(0x14046F3B0)(); // SV_CheckLoadGame
-		}
-
-		game::dvar_t* register_maxfps_stub(const char* name, int, int, int, unsigned int flags,
-		                                   const char* desc)
-		{
-			return game::Dvar_RegisterInt(name, 0, 0, 0, game::DvarFlags::DVAR_FLAG_READ, desc);
 		}
 
 		void send_heartbeat()
@@ -293,7 +285,7 @@ namespace dedicated
 
 			//utils::hook::set<uint8_t>(0x1402C89A0, 0xC3); // R_Init caller
 			utils::hook::jump(0x1402C89A0, init_dedicated_server);
-			utils::hook::call(0x140413AD8, register_maxfps_stub);
+			dvars::override::register_int("com_maxfps", 0, 0, 0, game::DVAR_FLAG_READ);
 
 			// delay startup commands until the initialization is done
 			utils::hook::call(0x140412183, execute_startup_command);
