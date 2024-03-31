@@ -48,7 +48,7 @@ namespace rcon
 				const auto client = &game::mp::svs_clients[i];
 				auto self = &game::mp::g_entities[i];
 
-				char clean_name[32] = {0};
+				char clean_name[32]{};
 				strncpy_s(clean_name, self->client->sess.cs.name, sizeof(clean_name));
 				game::I_CleanStr(clean_name);
 
@@ -175,7 +175,7 @@ namespace rcon
 
 					const auto password = data.substr(0, pos);
 					const auto command = data.substr(pos + 1);
-					const auto rcon_password = game::Dvar_FindVar("rcon_password");
+					const auto* rcon_password = game::Dvar_FindVar("rcon_password");
 					if (command.empty() || !rcon_password || !*rcon_password->current.string)
 					{
 						return;

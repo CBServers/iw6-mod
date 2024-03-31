@@ -4,7 +4,6 @@
 
 #include "command.hpp"
 #include "network.hpp"
-#include "console.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -277,12 +276,8 @@ namespace network
 				// allow server owner to modify net_port before the socket bind
 				utils::hook::call(0x140500FD0, register_netport_stub);
 
-				// ignore built in "print" oob command and add in our own
+				// ignore built in "print" oob command for security reasons
 				utils::hook::set<std::uint8_t>(0x1402C6AA4, 0xEB);
-				on("print", [](const game::netadr_s&, const std::string& data)
-				{
-					console::info("%s", data.data());
-				});
 			}
 		}
 	};

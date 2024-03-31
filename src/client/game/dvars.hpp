@@ -44,6 +44,9 @@ namespace dvars
 
 	extern game::dvar_t* cg_legacyCrashHandling;
 
+	extern game::dvar_t* com_developer_script;
+	extern game::dvar_t** com_developer;
+
 	std::string dvar_get_vector_domain(int components, const game::dvar_limits& domain);
 	std::string dvar_get_domain(game::dvar_type type, const game::dvar_limits& domain);
 }

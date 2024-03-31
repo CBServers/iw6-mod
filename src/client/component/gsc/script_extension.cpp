@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/dvars.hpp"
 
 #include "game/scripting/functions.hpp"
 
@@ -8,7 +9,6 @@
 #include <utils/string.hpp>
 
 #include "component/console.hpp"
-#include "component/scripting.hpp"
 #include "component/notifies.hpp"
 #include "component/command.hpp"
 
@@ -22,8 +22,6 @@ namespace gsc
 	std::uint16_t method_id_start = 0x8429;
 
 	void* func_table[0x1000];
-
-	const game::dvar_t* developer_script = nullptr;
 
 	namespace
 	{
@@ -135,7 +133,7 @@ namespace gsc
 
 		void vm_error_stub(int mark_pos)
 		{
-			if (!developer_script->current.enabled && !force_error_print)
+			if (!dvars::com_developer_script->current.enabled && !force_error_print)
 			{
 				utils::hook::invoke<void>(0x1404E4D00, mark_pos);
 				return;
@@ -283,8 +281,6 @@ namespace gsc
 			{
 				return;
 			}
-
-			developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
 
 			utils::hook::nop(0x14043BBBE + 5, 2);
 			utils::hook::call(0x14043BBBE, vm_call_builtin_function);

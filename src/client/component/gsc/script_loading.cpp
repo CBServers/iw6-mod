@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/dvars.hpp"
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
@@ -10,7 +11,6 @@
 #include "component/filesystem.hpp"
 #include "component/console.hpp"
 #include "component/scripting.hpp"
-#include "component/fastfiles.hpp"
 
 #include "script_loading.hpp"
 
@@ -25,8 +25,6 @@ namespace gsc
 
 		std::unordered_map<std::string, game::ScriptFile*> loaded_scripts;
 		utils::memory::allocator script_allocator;
-
-		const game::dvar_t* developer_script;
 
 		void clear()
 		{
@@ -266,11 +264,19 @@ namespace gsc
 
 		void scr_begin_load_scripts_stub()
 		{
-			const auto comp_mode = developer_script->current.enabled ?
-				xsk::gsc::build::dev :
-				xsk::gsc::build::prod;
+			auto build = xsk::gsc::build::prod;
 
-			gsc_ctx->init(comp_mode, []([[maybe_unused]] auto const* ctx, const auto& included_path) -> std::pair<xsk::gsc::buffer, std::vector<std::uint8_t>>
+			if ((*dvars::com_developer) && (*dvars::com_developer)->current.integer > 0)
+			{
+				build = static_cast<xsk::gsc::build>(static_cast<unsigned int>(build) | static_cast<unsigned int>(xsk::gsc::build::dev_maps));
+			}
+
+			if (dvars::com_developer_script && dvars::com_developer_script->current.enabled)
+			{
+				build = static_cast<xsk::gsc::build>(static_cast<unsigned int>(build) | static_cast<unsigned int>(xsk::gsc::build::dev_blocks));
+			}
+
+			gsc_ctx->init(build, []([[maybe_unused]] auto const* ctx, const auto& included_path) -> std::pair<xsk::gsc::buffer, std::vector<std::uint8_t>>
 			{
 				const auto script_name = std::filesystem::path(included_path).replace_extension().string();
 
@@ -331,13 +337,15 @@ namespace gsc
 
 		void post_unpack() override
 		{
+			dvars::com_developer = reinterpret_cast<game::dvar_t**>(SELECT_VALUE(0x141603850, 0x1419A9700));
+
 			// Load our scripts with an uncompressed stack
 			utils::hook::call(SELECT_VALUE(0x1403DC8F0, 0x140437940), db_get_raw_buffer_stub);
 
 			utils::hook::call(SELECT_VALUE(0x14032D1E0, 0x1403CCED9), scr_begin_load_scripts_stub); // GScr_LoadScripts
 			utils::hook::call(SELECT_VALUE(0x14032D345, 0x1403CD08D), scr_end_load_scripts_stub); // GScr_LoadScripts
 
-			developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
+			dvars::com_developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
 
 			if (game::environment::is_sp())
 			{

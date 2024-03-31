@@ -12,6 +12,21 @@
 
 #include <version.hpp>
 
+const char* get_current_date()
+{
+	auto now = std::chrono::system_clock::now();
+	auto current_time = std::chrono::system_clock::to_time_t(now);
+	std::tm local_time{};
+
+	(void)localtime_s(&local_time, &current_time);
+
+	std::stringstream ss;
+	ss << std::put_time(&local_time, "%Y%m%d_%H%M%S");
+
+	const auto result = ss.str();
+	return utils::string::va("%s", result.data());
+}
+
 LONG WINAPI exception_handler(PEXCEPTION_POINTERS exception_info)
 {
 	if (exception_info->ExceptionRecord->ExceptionCode == 0x406D1388)
@@ -38,7 +53,7 @@ LONG WINAPI exception_handler(PEXCEPTION_POINTERS exception_info)
 		| MiniDumpWithThreadInfo;
 
 	CreateDirectoryA("minidumps", nullptr);
-	const auto* file_name = utils::string::va("minidumps\\iw6-mod_%s_%u.dmp", SHORTVERSION, static_cast<std::uint32_t>(std::time(nullptr)));
+	const auto* file_name = utils::string::va("minidumps\\iw6-mod_%s_%s.dmp", SHORTVERSION, get_current_date());
 	constexpr auto file_share = FILE_SHARE_READ | FILE_SHARE_WRITE;
 
 	const auto file_handle = CreateFileA(file_name, GENERIC_WRITE | GENERIC_READ, file_share, nullptr,
