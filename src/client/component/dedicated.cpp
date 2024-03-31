@@ -294,6 +294,10 @@ namespace dedicated
 			utils::hook::call(0x140412FD3, execute_console_command);
 			utils::hook::nop(0x140412FE9, 5);
 
+			// disable check on an unregistered relay dvar
+			utils::hook::nop(0x14041E9EB, 4);
+			utils::hook::set<std::uint8_t>(0x14041E9EF, 0xEB);
+
 			utils::hook::nop(0x1404DDC2E, 5); // don't load config file
 			utils::hook::set<uint8_t>(0x140416100, 0xC3); // don't save config file
 			utils::hook::set<uint8_t>(0x1402E5830, 0xC3); // disable self-registration
