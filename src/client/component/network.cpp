@@ -285,7 +285,7 @@ namespace network
 				utils::hook::set<std::uint8_t>(0x1402C6AA4, 0xEB);
 
 				// patch buffer overflow
-				utils::hook::call(0x14041D355, memmove_stub);
+				utils::hook::call(0x14041D17E, memmove_stub);
 				// this patches a crash found in a subroutine registered using atexit
 				utils::hook::set<std::uint8_t>(0x140815D4E, 0xEB);
 			}
