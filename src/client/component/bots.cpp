@@ -75,8 +75,8 @@ namespace bots
 				return;
 			}
 
-			auto* bot_name = game::SV_BotGetRandomName();
-			auto* bot_ent = game::SV_AddBot(bot_name, 26, 62, 0);
+			const auto* bot_name = game::SV_BotGetRandomName();
+			const auto* bot_ent = game::SV_AddBot(bot_name, 26, 62, 0);
 			if (bot_ent)
 			{
 				spawn_bot(bot_ent->s.number);
@@ -87,34 +87,13 @@ namespace bots
 		volatile bool bot_names_received = false;
 		std::vector<std::string> bot_names;
 
-		const char* get_random_bot_name()
+		bool should_use_remote_bot_names()
 		{
-			if (bot_names.empty())
-			{
-				return get_bot_name_hook.invoke<const char*>();
-			}
-
-			const auto index = std::rand() % bot_names.size();
-			const auto& name = bot_names.at(index);
-
-			return utils::string::va("%.*s", static_cast<int>(name.size()), name.data());
-		}
-
-		bool should_update_bot_names()
-		{
+#ifdef ALLOW_CUSTOM_BOT_NAMES
 			return !filesystem::exists("bots.txt");
-		}
-
-		void update_bot_names()
-		{
-			bot_names_received = false;
-
-			game::netadr_s master{};
-			if (server_list::get_master_server(master))
-			{
-				console::info("Getting bots...\n");
-				network::send(master, "getbots");
-			}
+#else
+			return true;
+#endif
 		}
 
 		void parse_bot_names_from_file()
@@ -141,6 +120,37 @@ namespace bots
 				bot_names.emplace_back(entry);
 			}
 		}
+
+		const char* get_random_bot_name()
+		{
+			if (!bot_names_received && bot_names.empty())
+			{
+				// last attempt to use custom names if they can be found
+				parse_bot_names_from_file();
+			}
+
+			if (bot_names.empty())
+			{
+				return get_bot_name_hook.invoke<const char*>();
+			}
+
+			const auto index = std::rand() % bot_names.size();
+			const auto& name = bot_names.at(index);
+
+			return utils::string::va("%.*s", static_cast<int>(name.size()), name.data());
+		}
+
+		void update_bot_names()
+		{
+			bot_names_received = false;
+
+			game::netadr_s master{};
+			if (server_list::get_master_server(master))
+			{
+				console::info("Getting bots...\n");
+				network::send(master, "getbots");
+			}
+		}
 	}
 
 	class component final : public component_interface
@@ -159,23 +169,23 @@ namespace bots
 			{
 				if (!game::SV_Loaded()) return;
 
-				auto num_bots = 1;
+				std::size_t num_bots = 1;
 				if (params.size() == 2)
 				{
-					num_bots = atoi(params.get(1));
+					num_bots = std::strtoul(params.get(1), nullptr, 10);
 				}
 
-				num_bots = std::min(num_bots, *game::mp::svs_clientCount);
+				num_bots = std::min(num_bots, static_cast<std::size_t>(*game::mp::svs_clientCount));
 
-				console::info("Spawning %i %s\n", num_bots, (num_bots == 1 ? "bot" : "bots"));
+				console::info("Spawning %zu %s\n", num_bots, (num_bots == 1 ? "bot" : "bots"));
 
-				for (auto i = 0; i < num_bots; i++)
+				for (std::size_t i = 0; i < num_bots; ++i)
 				{
 					scheduler::once(add_bot, scheduler::pipeline::server, 100ms * i);
 				}
 			});
 
-			if (should_update_bot_names())
+			if (should_use_remote_bot_names())
 			{
 				scheduler::on_game_initialized([]()
 				{
