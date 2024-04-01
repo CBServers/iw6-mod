@@ -142,21 +142,21 @@ namespace network
 
 	const char* net_adr_to_string(const game::netadr_s& a)
 	{
-		if (a.type == game::netadrtype_t::NA_LOOPBACK)
+		if (a.type == game::NA_LOOPBACK)
 		{
 			return "loopback";
 		}
 
-		if (a.type == game::netadrtype_t::NA_BOT)
+		if (a.type == game::NA_BOT)
 		{
 			return "bot";
 		}
 
-		if (a.type == game::netadrtype_t::NA_IP || a.type == game::netadrtype_t::NA_BROADCAST)
+		if (a.type == game::NA_IP || a.type == game::NA_BROADCAST)
 		{
 			if (a.port)
 			{
-				return utils::string::va("%u.%u.%u.%u:%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3], htons(a.port));
+				return utils::string::va("%u.%u.%u.%u:%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3], ::htons(a.port));
 			}
 
 			return utils::string::va("%u.%u.%u.%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3]);
@@ -193,10 +193,9 @@ namespace network
 		a.jmp(0x14041DFBD);
 	}
 
-	game::dvar_t* register_netport_stub(const char* dvarName, int value, int min, int max, unsigned int flags,
-		const char* description)
+	game::dvar_t* register_netport_stub(const char* dvarName, int value, int min, int max, unsigned int flags, const char* description)
 	{
-		auto dvar = game::Dvar_RegisterInt("net_port", 27016, 0, 0xFFFFu, game::DVAR_FLAG_LATCHED, "Network port");
+		auto* dvar = game::Dvar_RegisterInt("net_port", 27016, 0, std::numeric_limits<uint16_t>::max(), game::DVAR_FLAG_LATCHED, "Network port");
 
 		// read net_port from command line
 		command::read_startup_variable("net_port");
@@ -231,7 +230,7 @@ namespace network
 				utils::hook::set<uint8_t>(0x1402ECF1D, 0xEB);
 				utils::hook::set<uint8_t>(0x1402ED02A, 0xEB);
 				utils::hook::set<uint8_t>(0x1402ED34D, 0xEB);
-				utils::hook::set<uint8_t>(0x1402C4A1F, 0xEB); //
+				utils::hook::set<uint8_t>(0x1402C4A1F, 0xEB);
 
 				// ignore unregistered connection
 				utils::hook::jump(0x140471AAC, reinterpret_cast<void*>(0x140471A50));
@@ -285,7 +284,7 @@ namespace network
 				utils::hook::set<std::uint8_t>(0x1402C6AA4, 0xEB);
 
 				// patch buffer overflow
-				utils::hook::call(0x14041D17E, memmove_stub);
+				utils::hook::call(0x14041D17E, memmove_stub); // NET_DeferPacketToClient
 				// this patches a crash found in a subroutine registered using atexit
 				utils::hook::set<std::uint8_t>(0x140815D4E, 0xEB);
 			}
