@@ -204,6 +204,7 @@ namespace bots
 				if (server_list::get_master_server(master) && !bot_names_received && target == master)
 				{
 					bot_names = utils::string::split(data, '\n');
+					console::info("Got %zu names from the master server\n", bot_names.size());
 					bot_names_received = true;
 				}
 			});

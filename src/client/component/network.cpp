@@ -3,7 +3,9 @@
 #include "game/game.hpp"
 
 #include "command.hpp"
+#include "console.hpp"
 #include "network.hpp"
+#include "party.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -86,8 +88,7 @@ namespace network
 			return net_compare_base_address(a1, a2) && a1->port == a2->port;
 		}
 
-		void reconnect_migratated_client(game::mp::client_t*, game::netadr_s* from, const int, const int, const char*,
-		                                 const char*, bool)
+		void reconnect_migrated_client(game::mp::client_t*, game::netadr_s* from, const int, const int, const char*, const char*, bool)
 		{
 			// This happens when a client tries to rejoin after being recently disconnected, OR by a duplicated guid
 			// We don't want this to do anything. It decides to crash seemingly randomly
@@ -224,7 +225,7 @@ namespace network
 				utils::hook::jump(0x14041DFB0, utils::hook::assemble(set_xuid_config_string_stub), true);
 
 				utils::hook::jump(0x14041D010, net_compare_address);
-				utils::hook::jump(0x14041D060, net_compare_base_address);
+				utils::hook::jump(0x14041D060, net_compare_address);
 
 				// don't establish secure conenction
 				utils::hook::set<uint8_t>(0x1402ECF1D, 0xEB);
@@ -275,13 +276,26 @@ namespace network
 				utils::hook::jump(0x1405019CB, 0x1405019F3);
 
 				// don't try to reconnect client
-				utils::hook::call(0x14047197E, reconnect_migratated_client);
+				utils::hook::call(0x14047197E, reconnect_migrated_client);
 
 				// allow server owner to modify net_port before the socket bind
 				utils::hook::call(0x140500FD0, register_netport_stub);
 
 				// ignore built in "print" oob command for security reasons
 				utils::hook::set<std::uint8_t>(0x1402C6AA4, 0xEB);
+				if (!game::environment::is_dedi())
+				{
+					// we need this on the client for RCon
+					on("print", [](const game::netadr_s& address, const std::string& message)
+					{
+						if (address != party::get_target())
+						{
+							return;
+						}
+
+						console::info("%s", message.data());
+					});
+				}
 
 				// patch buffer overflow
 				utils::hook::call(0x14041D17E, memmove_stub); // NET_DeferPacketToClient

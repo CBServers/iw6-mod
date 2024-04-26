@@ -81,14 +81,14 @@ namespace dvars
 		switch (type)
 		{
 		case game::dvar_type::boolean:
-			return "Domain is 0 or 1"s;
+			return "Domain is 0 or 1";
 
 		case game::dvar_type::value:
 			if (domain.value.min == -FLT_MAX)
 			{
 				if (domain.value.max == FLT_MAX)
 				{
-					return "Domain is any number"s;
+					return "Domain is any number";
 				}
 
 				return utils::string::va("Domain is any number %g or smaller", domain.value.max);
@@ -116,7 +116,7 @@ namespace dvars
 			{
 				if (domain.integer.max == INT_MAX)
 				{
-					return "Domain is any integer"s;
+					return "Domain is any integer";
 				}
 
 				return utils::string::va("Domain is any integer %i or smaller", domain.integer.max);
@@ -130,10 +130,10 @@ namespace dvars
 			return utils::string::va("Domain is any integer from %i to %i", domain.integer.min, domain.integer.max);
 
 		case game::dvar_type::color:
-			return "Domain is any 4-component color, in RGBA format"s;
+			return "Domain is any 4-component color, in RGBA format";
 
 		case game::dvar_type::enumeration:
-			str = "Domain is one of the following:"s;
+			str = "Domain is one of the following:";
 
 			for (auto string_index = 0; string_index < domain.enumeration.stringCount; ++string_index)
 			{
@@ -143,7 +143,7 @@ namespace dvars
 			return str;
 
 		case game::dvar_type::string:
-			return "Domain is any text"s;
+			return "Domain is any text";
 
 		default:
 			return utils::string::va("unhandled dvar type '%i'", type);

@@ -132,14 +132,14 @@ namespace patches
 			{
 				if (args.size() == 1)
 				{
-					const auto current = game::Dvar_ValueToString(dvar, dvar->current);
-					const auto reset = game::Dvar_ValueToString(dvar, dvar->reset);
-					console::info("\"%s\" is: \"%s^7\" default: \"%s^7\"\n", dvar->name, current, reset);
+					const std::string current = game::Dvar_ValueToString(dvar, dvar->current);
+					const std::string reset = game::Dvar_ValueToString(dvar, dvar->reset);
+					console::info("\"%s\" is: \"%s^7\" default: \"%s^7\"\n", dvar->name, current.data(), reset.data());
 					console::info("   %s\n", dvars::dvar_get_domain(dvar->type, dvar->domain).data());
 				}
 				else
 				{
-					char command[0x1000] = {0};
+					char command[0x1000]{};
 					game::Dvar_GetCombinedString(command, 1);
 					game::Dvar_SetCommand(args.get(0), command);
 				}

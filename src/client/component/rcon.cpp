@@ -15,6 +15,7 @@ namespace rcon
 	{
 		bool is_redirecting_ = false;
 		game::netadr_s redirect_target_ = {};
+		std::string redirect_buffer = {};
 		std::recursive_mutex redirect_lock;
 
 		void setup_redirect(const game::netadr_s& target)
@@ -23,14 +24,18 @@ namespace rcon
 
 			is_redirecting_ = true;
 			redirect_target_ = target;
+			redirect_buffer.clear();
 		}
 
 		void clear_redirect()
 		{
 			std::lock_guard<std::recursive_mutex> $(redirect_lock);
 
+			network::send(redirect_target_, "print", redirect_buffer, '\n');
+
 			is_redirecting_ = false;
 			redirect_target_ = {};
+			redirect_buffer.clear();
 		}
 
 		std::string build_status_buffer()
@@ -104,9 +109,10 @@ namespace rcon
 
 		if (is_redirecting_)
 		{
-			network::send(redirect_target_, "print\n", message);
+			redirect_buffer.append(message);
 			return true;
 		}
+
 		return false;
 	}
 
