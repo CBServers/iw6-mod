@@ -34,7 +34,7 @@ namespace scripting
 
 		std::unordered_map<unsigned int, std::string> canonical_string_table;
 
-		std::vector<std::function<void(int)>> shutdown_callbacks;
+		std::vector<std::function<void(int, int)>> shutdown_callbacks;
 		std::vector<std::function<void()>> init_callbacks;
 
 		void scr_load_level_stub()
@@ -47,9 +47,9 @@ namespace scripting
 			}
 		}
 
-		void g_shutdown_game_stub(const int free_scripts)
+		void g_shutdown_game_stub(const int clear_scripts)
 		{
-			if (free_scripts)
+			if (clear_scripts)
 			{
 				script_function_table_sort.clear();
 				script_function_table.clear();
@@ -59,10 +59,15 @@ namespace scripting
 
 			for (const auto& callback : shutdown_callbacks)
 			{
-				callback(free_scripts);
+				callback(clear_scripts ,false);
 			}
 
-			return g_shutdown_game_hook.invoke<void>(free_scripts);
+			g_shutdown_game_hook.invoke<void>(clear_scripts);
+
+			for (const auto& callback : shutdown_callbacks)
+			{
+				callback(clear_scripts, true);
+			}
 		}
 
 		void process_script_stub(const char* filename)
@@ -165,7 +170,7 @@ namespace scripting
 		return find_token(id);
 	}
 
-	void on_shutdown(const std::function<void(int)>& callback)
+	void on_shutdown(const std::function<void(int, int)>& callback)
 	{
 		shutdown_callbacks.push_back(callback);
 	}

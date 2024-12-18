@@ -126,7 +126,7 @@ namespace notifies
 			a.lea(eax, dword_ptr(r15, -0x17));
 			a.mov(dword_ptr(rbp, 0x60), r15d);
 
-			a.jmp(0x14043A593);
+			a.jmp(SELECT_VALUE(0x1403DF5B3, 0x14043A593));
 
 			a.bind(replace);
 
@@ -174,22 +174,22 @@ namespace notifies
 	public:
 		void post_unpack() override
 		{
+			utils::hook::jump(SELECT_VALUE(0x1403DF5A4, 0x14043A584), utils::hook::assemble(vm_execute_stub), true);
+
+			scripting::on_shutdown([](const int clear_scripts, const int post_shutdown) -> void
+			{
+				if (clear_scripts && post_shutdown)
+				{
+					vm_execute_hooks.clear();
+				}
+			});
+
 			if (game::environment::is_sp())
 			{
 				return;
 			}
 
 			utils::hook::call(0x1404724DD, client_command_stub);
-
-			utils::hook::jump(0x14043A584, utils::hook::assemble(vm_execute_stub), true);
-
-			scripting::on_shutdown([](const bool free_scripts)
-			{
-				if (free_scripts)
-				{
-					vm_execute_hooks.clear();
-				}
-			});
 		}
 	};
 }

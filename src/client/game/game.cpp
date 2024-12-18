@@ -25,6 +25,13 @@ namespace game
 		return sv_cmd_args->argv[sv_cmd_args->nesting][index];
 	}
 
+	HANDLE Sys_OpenFileReliable(const char* filename)
+	{
+		return ::CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, nullptr,
+		                     OPEN_EXISTING,
+		                     FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING, nullptr);
+	}
+
 	namespace environment
 	{
 		launcher::mode mode = launcher::mode::none;

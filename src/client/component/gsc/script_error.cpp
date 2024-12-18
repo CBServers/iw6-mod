@@ -113,7 +113,6 @@ namespace gsc
 
 			return res;
 		}
-
 	}
 
 	unsigned int scr_get_object(unsigned int index)
@@ -284,28 +283,23 @@ namespace gsc
 	public:
 		void post_unpack() override
 		{
-			if (game::environment::is_sp())
-			{
-				return;
-			}
+			scr_emit_function_hook.create(SELECT_VALUE(0x1403D3350, 0x14042E150), &scr_emit_function_stub);
 
-			scr_emit_function_hook.create(0x14042E150, &scr_emit_function_stub);
-
-			utils::hook::call(0x14042E0E4, compile_error_stub); // LinkFile
-			utils::hook::call(0x14042E138, compile_error_stub); // LinkFile
-			utils::hook::call(0x14042E22B, find_variable_stub); // Scr_EmitFunction
+			utils::hook::call(SELECT_VALUE(0x1403D32E4, 0x14042E0E4), compile_error_stub); // LinkFile
+			utils::hook::call(SELECT_VALUE(0x1403D3338, 0x14042E138), compile_error_stub); // LinkFile
+			utils::hook::call(SELECT_VALUE(0x1403D342A, 0x14042E22B), find_variable_stub); // Scr_EmitFunction
 
 			// Restore basic error messages to scr functions
-			utils::hook::jump(0x140438ED0, scr_get_object);
-			utils::hook::jump(0x140438AD0, scr_get_const_string);
-			utils::hook::jump(0x1404388B0, scr_get_const_istring);
-			utils::hook::jump(0x1404393D0, scr_get_vector);
-			utils::hook::jump(0x140438E10, scr_get_int);
-			utils::hook::jump(0x140438D60, scr_get_float);
+			utils::hook::jump(game::Scr_GetObject, scr_get_object);
+			utils::hook::jump(game::Scr_GetConstString, scr_get_const_string);
+			utils::hook::jump(game::Scr_GetConstIString, scr_get_const_istring);
+			utils::hook::jump(game::Scr_GetVector, scr_get_vector);
+			utils::hook::jump(game::Scr_GetInt, scr_get_int);
+			utils::hook::jump(game::Scr_GetFloat, scr_get_float);
 
-			utils::hook::jump(0x1404390B0, scr_get_pointer_type);
-			utils::hook::jump(0x140439280, scr_get_type);
-			utils::hook::jump(0x1404392F0, scr_get_type_name);
+			utils::hook::jump(SELECT_VALUE(0x1403DE150, 0x1404390B0), scr_get_pointer_type);
+			utils::hook::jump(SELECT_VALUE(0x1403DE320, 0x140439280), scr_get_type);
+			utils::hook::jump(SELECT_VALUE(0x1403DE390, 0x1404392F0), scr_get_type_name);
 		}
 
 		void pre_destroy() override

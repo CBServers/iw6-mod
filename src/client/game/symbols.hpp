@@ -8,12 +8,12 @@ namespace game
 	 * Functions
 	 **************************************************************/
 
-	WEAK symbol<void(unsigned int id)> AddRefToObject{0, 0x1404326D0};
+	WEAK symbol<void(unsigned int id)> AddRefToObject{0x1403D7A10, 0x1404326D0};
 	WEAK symbol<void(int type, VariableUnion u)> AddRefToValue{0x1403D7740, 0x1404326E0};
 	WEAK symbol<unsigned int(unsigned int id)> AllocThread{0, 0x1404329B0};
 	WEAK symbol<ObjectVariableValue*(unsigned int* index)> AllocVariable{0x1403D7A70, 0x140432A10};
 	WEAK symbol<void(int type, VariableUnion u)> RemoveRefToValue{0x1403D90F0, 0x1404340C0};
-	WEAK symbol<void(unsigned int id)> RemoveRefToObject{0, 0x140433FB0};
+	WEAK symbol<void(unsigned int id)> RemoveRefToObject{0x1403D8FE0, 0x140433FB0};
 	WEAK symbol<void(unsigned int parentId, unsigned int index)> RemoveVariableValue{0x1403D91C0, 0x140434190};
 
 	WEAK symbol<void(void*, void*)> AimAssist_AddToTargetList{0, 0x140139D80};
@@ -54,11 +54,11 @@ namespace game
 	WEAK symbol<XAssetHeader(XAssetType type, const char* name, int allowCreateDefault)> DB_FindXAssetHeader{0x140272300, 0x14031F3A0};
 	WEAK symbol<int(XAssetType type, const char* name)> DB_XAssetExists{0x140276200, 0x1403245E0};
 	WEAK symbol<int(XAssetType type, const char* name)> DB_IsXAssetDefault{0x140273480 , 0x1403204D0};
-	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x0140272E80, 0x14031FF80};
+	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x140272E80, 0x14031FF80};
 	WEAK symbol<void(const RawFile* rawfile, char* buf, int size)> DB_GetRawBuffer{0x140272D50, 0x14031FE50};
 	WEAK symbol<int(const char* zoneName)> DB_IsLocalized{0x140273210, 0x140320360};
 
-	WEAK symbol<void*(unsigned int size, unsigned int alignment, unsigned int type, PMem_Source source)> PMem_AllocFromSource_NoDebug{0x0140430B80, 0x001404F46C0};
+	WEAK symbol<void*(unsigned int size, unsigned int alignment, unsigned int type, PMem_Source source)> PMem_AllocFromSource_NoDebug{0x140430B80, 0x1404F46C0};
 	WEAK symbol<void(const char* name, PMem_Direction allocDir)> PMem_Free{0x140430EC0 , 0x1404F4A30};
 
 	WEAK symbol<void*(unsigned int size)> Hunk_AllocateTempMemoryHighInternal{0x140423C70, 0x1404E4E20};
@@ -103,6 +103,7 @@ namespace game
 	WEAK symbol<unsigned int (const char* name, /*ConfigString*/ unsigned int start, unsigned int max, int create,
 	                          const char* errormsg)> G_FindConfigstringIndex{0x0, 0x140161F90};
 	WEAK symbol<int(int server_time)> G_RunFrame{0x0, 0x1403A05E0};
+	WEAK symbol<int(int clientNun)> G_GetClientScore{0x0, 0x14039EF60};
 
 	WEAK symbol<game_hudelem_s*(int clientNum, int teamNum)> HudElem_Alloc{0x0, 0x1403997E0};
 
@@ -132,8 +133,9 @@ namespace game
 
 	WEAK symbol<StructuredDataDef*(const char* filename, unsigned int maxSize)>StructuredDataDef_GetAsset{0, 0x1404E6560};
 	WEAK symbol<StringTable*(const char* fileName, const StringTable** tablePtr)>StringTable_GetAsset{0, 0x1404E6170};
-	WEAK symbol<const char*(const StringTable* table, const int row, const int column)> StringTable_GetColumnValueForRow{0, 0x1404E61A0};
-	WEAK symbol<int(const StringTable* table, const int comparisonColumn, const char* value)> StringTable_LookupRowNumForValue{0, 0x1404E6260};
+	WEAK symbol<const char*(const StringTable* table, int row, int column)> StringTable_GetColumnValueForRow{0, 0x1404E61A0};
+	WEAK symbol<int(const StringTable* table, int comparisonColumn, const char* value)> StringTable_LookupRowNumForValue{0, 0x1404E6260};
+	WEAK symbol<int(const char* string)> StringTable_HashString{0x1404259A0, 0x1404E6320};
 
 	WEAK symbol<void(int localClientNum, const char* menuName, int isPopup, int isModal, unsigned int isExclusive)> LUI_OpenMenu{0x1403FD460, 0x1404B3610};
 	// Made up name, replaced by ScopedCriticalSection on Black Ops 3
@@ -163,13 +165,17 @@ namespace game
 	WEAK symbol<unsigned int(unsigned int parentId, unsigned int name)> FindVariable{0x1403D84F0, 0x1404334A0};
 	WEAK symbol<unsigned int(int entnum, unsigned int classnum)> FindEntityId{0, 0x1404333A0};
 	WEAK symbol<unsigned int(unsigned int parentId, unsigned int id)> GetVariableName{0x1403D8E90, 0x140433E60};
-	WEAK symbol<void (VariableValue* result, unsigned int classnum, int entnum, int offset)> GetEntityFieldValue{0x1403DC810, 0x140437860};
+	WEAK symbol<void(VariableValue* result, unsigned int classnum, int entnum, int offset)> GetEntityFieldValue{0x1403DC810, 0x140437860};
 	WEAK symbol<const float*(const float* v)> Scr_AllocVector{0x1403D9AF0, 0x140434A10};
-	WEAK symbol<const char*(unsigned int index)> Scr_GetString{0, 0x140439160};
+	WEAK symbol<const char*(unsigned int index)> Scr_GetString{0x1403DE200, 0x140439160};
+	WEAK symbol<unsigned int(unsigned int index)> Scr_GetConstString{0x1403DDAC0, 0x140438AD0};
+	WEAK symbol<unsigned int(unsigned int index)> Scr_GetConstIString{0x1403DD8A0, 0x1404388B0};
 	WEAK symbol<void(int value)> Scr_AddInt{0x0, 0x140437E70};
 	WEAK symbol<void(const char* value)> Scr_AddString{0x0, 0x1404381D0};
-	WEAK symbol<int(unsigned int index)> Scr_GetInt{0x0, 0x140438E10};
-	WEAK symbol<float(unsigned int index)> Scr_GetFloat{0, 0x140438D60};
+	WEAK symbol<int(unsigned int index)> Scr_GetInt{0x1403DDEB0, 0x140438E10};
+	WEAK symbol<float(unsigned int index)> Scr_GetFloat{0x1403DDD50, 0x140438D60};
+	WEAK symbol<void(unsigned int index, float* vectorValue)> Scr_GetVector{0x1403DE470, 0x1404393D0};
+	WEAK symbol<unsigned int(unsigned int index)> Scr_GetObject{0x1403DDF70, 0x140438ED0};
 	WEAK symbol<unsigned int()> Scr_GetNumParam{0x1403DDF60, 0x140438EC0};
 	WEAK symbol<void()> Scr_ClearOutParams{0x1403DD500, 0x140438600};
 	WEAK symbol<scr_entref_t(unsigned int entId)> Scr_GetEntityIdRef{0x1403DBDC0, 0x140436E10};
@@ -178,15 +184,16 @@ namespace game
 	WEAK symbol<void(unsigned int id, unsigned int stringValue, unsigned int paramcount)> Scr_NotifyId{0x1403DE730, 0x140439700};
 	WEAK symbol<void(unsigned int stringValue, unsigned int paramcount)> Scr_NotifyLevel{0x0, 0x1404397D0};
 	WEAK symbol<unsigned int(int entnum, unsigned int classnum)> Scr_GetEntityId{0x0, 0x140436D60};
-	WEAK symbol<bool(VariableValue* value)> Scr_CastString{0x0, 0x140434AC0};
+	WEAK symbol<bool(VariableValue* value)> Scr_CastString{0x1403D9BA0, 0x140434AC0};
 
 	WEAK symbol<unsigned __int16(int handle, unsigned int paramcount)> Scr_ExecThread{0x1403DD600, 0x1404386E0};
 	WEAK symbol<unsigned int(const char* name)> Scr_LoadScript{0x1403D3C50, 0x14042EAA0};
 	WEAK symbol<unsigned int(const char* script, unsigned int name)> Scr_GetFunctionHandle{0x1403D3AD0 , 0x14042E920};
 	WEAK symbol<unsigned int(void* func, int type, unsigned int name)> Scr_RegisterFunction{0x1403D3530, 0x14042E330};
-	WEAK symbol<void()> Scr_ErrorInternal{0x0, 0x140438660};
+	WEAK symbol<unsigned int(const char** pName, int* type)> Scr_GetFunction{0x14034A950, 0x1403CD9F0};
+	WEAK symbol<void()> Scr_ErrorInternal{0x1403DD580 , 0x140438660};
 
-	WEAK symbol<int(unsigned int)> GetObjectType{0x0, 0x140433CF0};
+	WEAK symbol<int(unsigned int)> GetObjectType{0x1403D8D30, 0x140433CF0};
 
 	WEAK symbol<unsigned int(unsigned int localId, const char* pos, unsigned int paramcount)> VM_Execute{0, 0x14043A280};
 
@@ -204,7 +211,6 @@ namespace game
 	WEAK symbol<void()> SV_MatchEnd{0x0, 0x14047A090};
 
 	WEAK symbol<void(netadr_s* from)> SV_DirectConnect{0, 0x140471390};
-	WEAK symbol<void(int, int, const char*)> SV_GameSendServerCommand{0x140490F40, 0x1404758C0};
 	WEAK symbol<bool()> SV_Loaded{0x140491820, 0x1404770C0};
 	WEAK symbol<void(int localClientNum, const char* map, bool mapIsPreloaded)> SV_StartMap{0, 0x140470170};
 	WEAK symbol<void(int localClientNum, const char* map, bool mapIsPreloaded, bool migrate)> SV_StartMapForParty{0, 0x1404702F0};
@@ -220,6 +226,7 @@ namespace game
 	WEAK symbol<const char*(int clientNum)> SV_GetGuid{0, 0x140475990};
 	WEAK symbol<void(int clientNum, const char* reason)> SV_KickClientNum{0, 0x14046F730};
 	WEAK symbol<void(int index, const char* string)> SV_SetConfigstring{0, 0x140477450};
+	WEAK symbol<void(int clientNum, svscmd_type type, const char* text)> SV_GameSendServerCommand{0x140490F40, 0x1404758C0};
 
 	WEAK symbol<void(const char* error, ...)> Sys_Error{0x14043AC20, 0x1404FF510};
 	WEAK symbol<bool()> Sys_IsDatabaseReady2{0x1403C2D40, 0x140423920};
@@ -245,6 +252,8 @@ namespace game
 		const float*, const Bounds*, int, int)> PM_trace{0, 0x140225DB0};
 
 	WEAK symbol<void(void* ps)> Jump_ClearState{0x0, 0x140213120};
+
+	WEAK symbol<void(unsigned __int64 markPos)> LargeLocalResetToMark{0x140423B50, 0x1404E4D00};
 
 	WEAK symbol<void*(jmp_buf* Buf, int Value)> longjmp{0x14062E030, 0x140738060};
 	WEAK symbol<int (jmp_buf* Buf)> _setjmp{0x14062F030, 0x140739060};

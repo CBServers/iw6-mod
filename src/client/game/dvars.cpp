@@ -46,7 +46,9 @@ namespace dvars
 	game::dvar_t* cg_legacyCrashHandling = nullptr;
 
 	game::dvar_t* com_developer_script = nullptr;
-	game::dvar_t** com_developer;
+	game::dvar_t** com_developer = nullptr;
+
+	game::dvar_t** fs_gameDirVar = nullptr;
 
 	std::string dvar_get_vector_domain(const int components, const game::dvar_limits& domain)
 	{

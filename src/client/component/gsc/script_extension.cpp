@@ -37,9 +37,60 @@ namespace gsc
 		bool force_error_print = false;
 		std::optional<std::string> gsc_error_msg;
 
+		std::vector<devmap_entry> devmap_entries{};
+
+		std::optional<devmap_entry> get_devmap_entry(const std::uint8_t* codepos)
+		{
+			const auto itr = std::ranges::find_if(devmap_entries, [codepos](const devmap_entry& entry) -> bool
+			{
+				return codepos >= entry.bytecode && codepos < entry.bytecode + entry.size;
+			});
+
+			if (itr != devmap_entries.end())
+			{
+				return *itr;
+			}
+
+			return {};
+		}
+
+		std::optional<std::pair<std::uint16_t, std::uint16_t>> get_line_and_col_for_codepos(const std::uint8_t* codepos)
+		{
+			const auto entry = get_devmap_entry(codepos);
+
+			if (!entry.has_value())
+			{
+				return {};
+			}
+
+			std::optional<std::pair<std::uint16_t, std::uint16_t>> best_line_info{};
+			std::uint32_t best_codepos = 0;
+
+			assert(codepos >= entry->bytecode);
+			const std::uint32_t codepos_offset = static_cast<std::uint32_t>(codepos - entry->bytecode);
+
+			for (const auto& instruction : entry->devmap)
+			{
+				if (instruction.codepos > codepos_offset)
+				{
+					continue;
+				}
+
+				if (best_line_info.has_value() && codepos_offset - instruction.codepos > codepos_offset - best_codepos)
+				{
+					continue;
+				}
+
+				best_line_info = { { instruction.line, instruction.col } };
+				best_codepos = instruction.codepos;
+			}
+
+			return best_line_info;
+		}
+
 		unsigned int scr_get_function_stub(const char** p_name, int* type)
 		{
-			const auto result = utils::hook::invoke<unsigned int>(0x1403CD9F0, p_name, type);
+			const auto result = game::Scr_GetFunction(p_name, type);
 
 			for (const auto& [name, func] : functions)
 			{
@@ -120,27 +171,36 @@ namespace gsc
 				const auto pos = frame == game::scr_VmPub->function_frame ? game::scr_function_stack->pos : frame->fs.pos;
 				const auto function = find_function(frame->fs.pos);
 
+				const char* location;
 				if (function.has_value())
 				{
-					console::warn("\tat function \"%s\" in file \"%s.gsc\"\n", function.value().first.data(), function.value().second.data());
+					location = utils::string::va("function \"%s\" in file \"%s\"", function.value().first.data(), function.value().second.data());
 				}
 				else
 				{
-					console::warn("\tat unknown location %p\n", pos);
+					location = utils::string::va("unknown location %p", pos);
 				}
+
+				const auto line_info = get_line_and_col_for_codepos(reinterpret_cast<const std::uint8_t*>(pos));
+				if (line_info.has_value())
+				{
+					location = utils::string::va("%s line \"%d\" column \"%d\"", location, line_info->first, line_info->second);
+				}
+
+				console::warn("\tat %s\n", location);
 			}
 		}
 
-		void vm_error_stub(int mark_pos)
+		void vm_error_stub(const unsigned __int64 mark_pos)
 		{
 			if (!dvars::com_developer_script->current.enabled && !force_error_print)
 			{
-				utils::hook::invoke<void>(0x1404E4D00, mark_pos);
+				game::LargeLocalResetToMark(mark_pos);
 				return;
 			}
 
 			console::warn("******* script runtime error ********\n");
-			const auto opcode_id = *reinterpret_cast<std::uint8_t*>(0x144D57840);
+			const auto opcode_id = *reinterpret_cast<std::uint8_t*>(SELECT_VALUE(0x1455BE740, 0x144D57840));
 
 			const std::string error = gsc_error_msg.has_value() ? std::format(": {}", gsc_error_msg.value()) : std::string();
 
@@ -166,7 +226,7 @@ namespace gsc
 
 			print_callstack();
 			console::warn("************************************\n");
-			utils::hook::invoke<void>(0x1404E4D00, mark_pos);
+			game::LargeLocalResetToMark(mark_pos);
 		}
 
 		void inc_in_param()
@@ -228,6 +288,11 @@ namespace gsc
 			scr_error(utils::string::va("Assert fail: %s", game::Scr_GetString(0)));
 		}
 
+		void scr_cmd_is_dedicated_server()
+		{
+			game::Scr_AddInt(game::environment::is_dedi());
+		}
+
 		const char* get_code_pos(const int index)
 		{
 			if (static_cast<unsigned int>(index) >= game::scr_VmPub->outparamcount)
@@ -246,6 +311,22 @@ namespace gsc
 
 			return value->u.codePosValue;
 		}
+	}
+
+	void add_devmap_entry(std::uint8_t* codepos, std::size_t size, const std::string& name, xsk::gsc::buffer devmap_buf)
+	{
+		std::vector<dev_map_instruction> devmap{};
+		const auto* devmap_ptr = reinterpret_cast<const dev_map*>(devmap_buf.data);
+
+		devmap.resize(devmap_ptr->num_instructions);
+		std::memcpy(devmap.data(), devmap_ptr->instructions, sizeof(dev_map_instruction) * devmap_ptr->num_instructions);
+
+		devmap_entries.emplace_back(codepos, size, name, std::move(devmap));
+	}
+
+	void clear_devmap()
+	{
+		devmap_entries.clear();
 	}
 
 	void add_function(const std::string& name, game::BuiltinFunction function)
@@ -271,27 +352,18 @@ namespace gsc
 			utils::hook::set<game::BuiltinFunction>(SELECT_VALUE(0x14086F468, 0x1409E6CE8), scr_print);
 			utils::hook::set<game::BuiltinFunction>(SELECT_VALUE(0x14086F480, 0x1409E6D00), scr_print_ln);
 
-			utils::hook::set<std::uint32_t>(SELECT_VALUE(0x1403D353C, 0x14042E33C), 0x1000); // Scr_RegisterFunction
+			utils::hook::set<std::uint32_t>(SELECT_VALUE(0x1403D353B + 1, 0x14042E33B + 1), 0x1000); // Scr_RegisterFunction
 
 			utils::hook::set<std::uint32_t>(SELECT_VALUE(0x1403D3542 + 4, 0x14042E342 + 4), RVA(&func_table)); // Scr_RegisterFunction
-			utils::hook::set<std::uint32_t>(SELECT_VALUE(0x1403E0BDD + 3, 0x14043BBBE + 3), RVA(&func_table)); // VM_Execute_0
+			// utils::hook::set<std::uint32_t>(SELECT_VALUE(0x1403E0BDD + 3, 0x14043BBBE + 3), RVA(&func_table)); // VM_Execute_0
 			utils::hook::inject(SELECT_VALUE(0x1403D38E4 + 3, 0x14042E734 + 3), &func_table); // Scr_BeginLoadScripts
 
-			if (game::environment::is_sp())
-			{
-				return;
-			}
+			utils::hook::nop(SELECT_VALUE(0x1403E0BDD + 5, 0x14043BBBE + 5), 2);
+			utils::hook::call(SELECT_VALUE(0x1403E0BDD, 0x14043BBBE), vm_call_builtin_function);
 
-			utils::hook::nop(0x14043BBBE + 5, 2);
-			utils::hook::call(0x14043BBBE, vm_call_builtin_function);
+			utils::hook::call(SELECT_VALUE(0x1403D391F, 0x14042E76F), scr_get_function_stub);
 
-			utils::hook::call(0x14043CEB1, vm_error_stub);
-
-			utils::hook::call(0x14042E76F, scr_get_function_stub);
-
-			utils::hook::set<game::BuiltinFunction>(0x1409E6E38, assert_ex_cmd);
-			utils::hook::set<game::BuiltinFunction>(0x1409E6E50, assert_msg_cmd);
-			utils::hook::set<game::BuiltinFunction>(0x1409E6E20, assert_cmd);
+			utils::hook::call(SELECT_VALUE(0x1403E1ED0, 0x14043CEB1), vm_error_stub);
 
 			add_function("replacefunc", []
 			{
@@ -309,10 +381,16 @@ namespace gsc
 				command::execute(cmd);
 			});
 
-			add_function("isdedicated", []
+			if (game::environment::is_sp())
 			{
-				game::Scr_AddInt(game::environment::is_dedi());
-			});
+				return;
+			}
+
+			utils::hook::set<game::BuiltinFunction>(0x1409E6E38, assert_ex_cmd);
+			utils::hook::set<game::BuiltinFunction>(0x1409E6E50, assert_msg_cmd);
+			utils::hook::set<game::BuiltinFunction>(0x1409E6E20, assert_cmd);
+
+			utils::hook::set<game::BuiltinFunction>(0x1409E94D0, scr_cmd_is_dedicated_server);
 		}
 	};
 }

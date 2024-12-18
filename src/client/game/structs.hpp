@@ -47,6 +47,12 @@ namespace game
 		PMF_UNK3 = 0x4000,
 	};
 
+	enum svscmd_type
+	{
+		SV_CMD_CAN_IGNORE,
+		SV_CMD_RELIABLE,
+	};
+
 	enum XAssetType
 	{
 		ASSET_TYPE_PHYSPRESET = 0x0,
@@ -125,6 +131,19 @@ namespace game
 		DB_LOAD_ASYNC_FORCE_FREE = 0x3,
 		DB_LOAD_ASYNC_NO_SYNC_THREADS = 0x4,
 		DB_LOAD_SYNC_SKIP_ALWAYS_LOADED = 0x5,
+	};
+
+	enum
+	{
+		DB_ZONE_COMMON = 0x1,
+		DB_ZONE_UI = 0x2,
+		DB_ZONE_GAME = 0x4,
+		DB_ZONE_LOAD = 0x8,
+		DB_ZONE_DEV = 0x10,
+		DB_ZONE_BASEMAP = 0x20,
+		DB_ZONE_TRANSIENT_POOL = 0x40,
+		DB_ZONE_TRANSIENT_MASK = 0x40,
+		DB_ZONE_CUSTOM = 0x80,
 	};
 
 	enum
@@ -1106,6 +1125,7 @@ namespace game
 		DVAR_FLAG_LATCHED = 0x2,
 		DVAR_FLAG_CHEAT = 0x4,
 		DVAR_FLAG_REPLICATED = 0x8,
+		DVAR_FLAG_SERVERINFO = 0x400,
 		DVAR_FLAG_WRITE = 0x800,
 		DVAR_FLAG_READ = 0x2000,
 	};
@@ -1553,6 +1573,13 @@ namespace game
 		VAR_TOTAL_COUNT = 0x1B,
 	};
 
+	struct ScriptFunctions
+	{
+		int maxSize;
+		int count;
+		int* address;
+	};
+
 	struct VariableStackBuffer
 	{
 		const char* pos;
@@ -1952,8 +1979,8 @@ namespace game
 		SurfaceFxTable *surfaceFx;*/
 		RawFile* rawfile;
 		ScriptFile* scriptfile;
-		/*StringTable *stringTable;
-		LeaderboardDef *leaderboardDef;
+		StringTable* stringTable;
+		/*LeaderboardDef *leaderboardDef;
 		StructuredDataDefSet *structuredDataDefSet;
 		TracerDef *tracerDef;
 		VehicleDef *vehDef;
@@ -2013,6 +2040,18 @@ namespace game
 		bool isAlternate;
 		const WeaponDef* weapDef;
 		const void* weapCompleteDef;
+	};
+
+	enum FF_DIR
+	{
+		FFD_DEFAULT = 0x0,
+		FFD_MOD_DIR = 0x1,
+		FFD_USER_MAP = 0x2,
+	};
+
+	struct Sys_File
+	{
+		HANDLE handle;
 	};
 
 	namespace sp

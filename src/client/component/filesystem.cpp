@@ -86,6 +86,11 @@ namespace filesystem
 			register_path("iw6");
 			register_path(get_binary_directory() + "\\data");
 
+			if (get_binary_directory() != std::filesystem::current_path())
+			{
+				register_path(std::filesystem::current_path() / "data");
+			}
+
 			// game's search paths
 			register_path("devraw");
 			register_path("devraw_shared");

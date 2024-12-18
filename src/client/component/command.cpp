@@ -232,7 +232,10 @@ namespace command
 
 	void execute(std::string command, const bool sync)
 	{
-		command += "\n";
+		if (!command.ends_with('\n'))
+		{
+			command += "\n";
+		}
 
 		if (sync)
 		{
@@ -553,12 +556,12 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].flags ^= game::FL_GODMODE;
-				game::SV_GameSendServerCommand(client_num, 1,
+				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 				                               utils::string::va("f \"godmode %s\"",
 				                                                 game::mp::g_entities[client_num].flags & game::FL_GODMODE
 					                                                 ? "^2on"
@@ -569,12 +572,12 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].flags ^= game::FL_NOTARGET;
-				game::SV_GameSendServerCommand(client_num, 1,
+				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 				                               utils::string::va("f \"notarget %s\"",
 				     	                                         game::mp::g_entities[client_num].flags & game::FL_NOTARGET 
 					                    	                         ? "^2on" 
@@ -585,12 +588,12 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].client->flags ^= 1;
-				game::SV_GameSendServerCommand(client_num, 1,
+				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 				                               utils::string::va("f \"noclip %s\"",
 				                                                 game::mp::g_entities[client_num].client->flags & 1
 					                                                 ? "^2on"
@@ -601,12 +604,12 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].client->flags ^= 2;
-				game::SV_GameSendServerCommand(client_num, 1,
+				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 				                               utils::string::va("f \"ufo %s\"",
 				                                                 game::mp::g_entities[client_num].client->flags & 2
 					                                                 ? "^2on"
@@ -617,13 +620,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 4)
 				{
-					game::SV_GameSendServerCommand(client_num, 1,
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 					                               "f \"You did not specify the correct number of coordinates\"");
 					return;
 				}
@@ -637,13 +640,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 4)
 				{
-					game::SV_GameSendServerCommand(client_num, 1,
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
 					                               "f \"You did not specify the correct number of coordinates\"");
 					return;
 				}
@@ -657,13 +660,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 2)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"You did not specify a weapon name\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
 					return;
 				}
 
@@ -680,13 +683,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"Cheats are not enabled on this server\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 2)
 				{
-					game::SV_GameSendServerCommand(client_num, 1, "f \"You did not specify a weapon name\"");
+					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
 					return;
 				}
 

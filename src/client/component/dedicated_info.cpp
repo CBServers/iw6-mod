@@ -25,28 +25,28 @@ namespace dedicated_info
 
 			scheduler::loop([]()
 			{
-				auto* sv_running = game::Dvar_FindVar("sv_running");
+				const auto* sv_running = game::Dvar_FindVar("sv_running");
 				if (!sv_running || !sv_running->current.enabled)
 				{
 					console::set_title("iw6-mod Dedicated Server");
 					return;
 				}
 
-				auto* const sv_hostname = game::Dvar_FindVar("sv_hostname");
-				auto* const sv_maxclients = game::Dvar_FindVar("sv_maxclients");
-				auto* const mapname = game::Dvar_FindVar("mapname");
+				const auto* sv_hostname = game::Dvar_FindVar("sv_hostname");
+				const auto* sv_maxclients = game::Dvar_FindVar("sv_maxclients");
+				const auto* mapname = game::Dvar_FindVar("mapname");
 
 				auto client_count = 0;
 				auto bot_count = 0;
 
-				for (auto i = 0; i < sv_maxclients->current.integer; i++)
+				for (auto i = 0; i < sv_maxclients->current.integer; ++i)
 				{
 					auto* client = &game::mp::svs_clients[i];
 					auto* self = &game::mp::g_entities[i];
 
 					if (client->header.state > game::CS_FREE && self && self->client)
 					{
-						client_count++;
+						++client_count;
 						if (game::SV_BotIsBot(i))
 						{
 							++bot_count;

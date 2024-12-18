@@ -102,9 +102,14 @@ namespace game_log
 				g_log_printf("InitGame\n");
 			});
 
-			scripting::on_shutdown([](int free_scripts)
+			scripting::on_shutdown([](const int clear_scripts, const int post_shutdown) -> void
 			{
-				console::info("==== ShutdownGame (%d) ====\n", free_scripts);
+				if (post_shutdown)
+				{
+					return;
+				}
+
+				console::info("==== ShutdownGame (%d) ====\n", clear_scripts);
 
 				g_log_printf("ShutdownGame:\n");
 				g_log_printf("------------------------------------------------------------\n");
