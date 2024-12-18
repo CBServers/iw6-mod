@@ -1,12 +1,12 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
-
 #include "game/game.hpp"
 #include "game/dvars.hpp"
 
-#include "fastfiles.hpp"
 #include "command.hpp"
 #include "console.hpp"
+#include "fastfiles.hpp"
+
 
 #include <utils/hook.hpp>
 #include <utils/memory.hpp>
@@ -22,7 +22,7 @@ namespace fastfiles
 		void db_try_load_x_file_internal(const char* zone_name, const int zone_flags, const int is_base_map)
 		{
 			console::info("Loading fastfile %s\n", zone_name);
-			return db_try_load_x_file_internal_hook.invoke<void>(zone_name, zone_flags, is_base_map);
+			db_try_load_x_file_internal_hook.invoke<void>(zone_name, zone_flags, is_base_map);
 		}
 
 		void dump_gsc_script(const std::string& name, game::XAssetHeader header)
@@ -114,21 +114,9 @@ namespace fastfiles
 			utils::hook::call(SELECT_VALUE(0x1402752DF, 0x140156350), p_mem_free_stub);
 			utils::hook::call(SELECT_VALUE(0x140276004, 0x140324259), p_mem_free_stub);
 
-			command::add("loadzone", [](const command::params& params)
-			{
-				if (params.size() < 2)
-				{
-					console::info("usage: loadzone <zone>\n");
-					return;
-				}
-
-				game::XZoneInfo info;
-				info.name = params.get(1);
-				info.allocFlags = 1;
-				info.freeFlags = 0;
-
-				game::DB_LoadXAssets(&info, 1, game::DBSyncMode::DB_LOAD_SYNC);
-			});
+			// Allow loading of unsigned fastfiles
+			utils::hook::set<uint8_t>(0x1402FBF23, 0xEB); // DB_LoadXFile
+			utils::hook::nop(0x1402FC445, 2); // DB_SetFileLoadCompressor
 
 			command::add("materiallist", [](const command::params& params)
 			{

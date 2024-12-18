@@ -47,6 +47,8 @@ namespace dvars
 	extern game::dvar_t* com_developer_script;
 	extern game::dvar_t** com_developer;
 
+	extern game::dvar_t** fs_gameDirVar;
+
 	std::string dvar_get_vector_domain(int components, const game::dvar_limits& domain);
 	std::string dvar_get_domain(game::dvar_type type, const game::dvar_limits& domain);
 }

@@ -63,6 +63,8 @@ namespace game
 	[[nodiscard]] int SV_Cmd_Argc();
 	[[nodiscard]] const char* SV_Cmd_Argv(int index);
 
+	[[nodiscard]] HANDLE Sys_OpenFileReliable(const char* filename);
+
 	[[nodiscard]] bool is_headless();
 	void show_error(const std::string& text, const std::string& title = "Error");
 

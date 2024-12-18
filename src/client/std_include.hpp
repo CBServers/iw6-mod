@@ -5,7 +5,9 @@
 #define BINARY_PAYLOAD_SIZE 0x0B500000
 
 // Decide whether to load the game as lib or to inject it
+#if 1
 #define INJECT_HOST_AS_LIB
+#endif
 
 #pragma warning(push)
 #pragma warning(disable: 4100)

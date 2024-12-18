@@ -8,11 +8,13 @@
 #include "console.hpp"
 #include "network.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/smbios.hpp>
-#include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
+#include <utils/hook.hpp>
+#include <utils/info_string.hpp>
+#include <utils/io.hpp>
+#include <utils/properties.hpp>
+#include <utils/smbios.hpp>
+#include <utils/string.hpp>
 
 namespace auth
 {
@@ -31,13 +33,26 @@ namespace auth
 
 		std::string get_hw_profile_guid()
 		{
+			auto hw_profile_path = (utils::properties::get_appdata_path() / "iw6-guid.dat").generic_string();
+			if (utils::io::file_exists(hw_profile_path))
+			{
+				std::string hw_profile_info;
+				if (utils::io::read_file(hw_profile_path, &hw_profile_info) && !hw_profile_info.empty())
+				{
+					return hw_profile_info;
+				}
+			}
+
 			HW_PROFILE_INFO info;
 			if (!GetCurrentHwProfileA(&info))
 			{
 				return {};
 			}
 
-			return std::string{ info.szHwProfileGuid, sizeof(info.szHwProfileGuid) };
+			auto hw_profile_info = std::string{ info.szHwProfileGuid, sizeof(info.szHwProfileGuid) };
+			utils::io::write_file(hw_profile_path, hw_profile_info);
+
+			return hw_profile_info;
 		}
 
 		std::string get_protected_data()
