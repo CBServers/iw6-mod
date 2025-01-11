@@ -115,13 +115,13 @@ namespace utils::string
 
 	void strip(const char* in, char* out, size_t max)
 	{
-		if (!in || !out) return;
+		if (!in || !out || !max) return;
 
 		max--;
 		auto current = 0u;
 		while (*in != 0 && current < max)
 		{
-			const auto color_index = (*(in + 1) - 48) >= 0xC ? 7 : (*(in + 1) - 48);
+			const auto color_index = (static_cast<size_t>(*(in + 1) - 48)) >= 0xC ? 7 : (*(in + 1) - 48);
 
 			if (*in == '^' && (color_index != 7 || *(in + 1) == '7'))
 			{

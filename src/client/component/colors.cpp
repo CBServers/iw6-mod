@@ -76,7 +76,16 @@ namespace colors
 
 		void com_clean_name_stub(const char* in, char* out, const int out_size)
 		{
-			strncpy_s(out, out_size, in, _TRUNCATE);
+			// Check that the name is at least 3 char without colors
+			char name[16]{};
+
+			game::I_strncpyz(out, in, std::min<int>(out_size, sizeof(name)));
+
+			utils::string::strip(out, name, std::strlen(out) + 1);
+			if (std::strlen(name) < 3)
+			{
+				game::I_strncpyz(out, "UnnamedPlayer", std::min<int>(out_size, sizeof(name)));
+			}
 		}
 
 		char* i_clean_str_stub(char* string)
@@ -86,16 +95,29 @@ namespace colors
 			return string;
 		}
 
-		size_t get_client_name_stub(const int local_client_num, const int index, char* buf, const int size,
-		                            const size_t unk, const size_t unk2)
+		int cl_get_client_name_and_clan_tag_stub(const int local_client_num, const int index, char* name_buf, const int name_size, char* clan_tag_buf, int clan_tag_size)
 		{
-			// CL_GetClientName (CL_GetClientNameAndClantag?)
-			const auto result = reinterpret_cast<size_t(*)(int, int, char*, int, size_t, size_t)>(0x1402CF790)(
-				local_client_num, index, buf, size, unk, unk2);
+			// CL_GetClientNameAndClanTag -> CL_GetClientNameAndClanTagColorize
+			const auto result = utils::hook::invoke<int>(0x1402CF790, local_client_num, index, name_buf, name_size, clan_tag_buf, clan_tag_size);
 
-			utils::string::strip(buf, buf, size);
+			utils::string::strip(name_buf, name_buf, name_size);
 
 			return result;
+		}
+
+		int com_sprintf_stub(char* dest, int size, const char* fmt, const char* name)
+		{
+			const auto len = sprintf_s(dest, size, fmt, name);
+			if (len < 0)
+			{
+				game::I_strncpyz(dest, "UnnamedAgent", size);
+				return len;
+			}
+
+			// This should inherit the name of the owner (a player) which already passed the length check in Com_CleanName
+			utils::string::strip(dest, dest, len + 1);
+
+			return len;
 		}
 
 		void rb_lookup_color_stub(const char index, DWORD* color)
@@ -138,10 +160,15 @@ namespace colors
 			if (!game::environment::is_sp())
 			{
 				// allows colored name in-game
-				utils::hook::jump(0x1404F5FC0, com_clean_name_stub);
+				utils::hook::call(0x1403881CF, com_clean_name_stub);
+				utils::hook::call(0x140388224, com_clean_name_stub);
 
 				// don't apply colors to overhead names
-				utils::hook::call(0x14025CE79, get_client_name_stub);
+				utils::hook::call(0x14025CE79, cl_get_client_name_and_clan_tag_stub);
+
+				// don't apply colors to overhead names of agents (like dogs or juggernauts)
+				// hook Com_sprintf in CL_GetAgentName
+				utils::hook::call(0x1402CF760, com_sprintf_stub);
 
 				// patch I_CleanStr
 				utils::hook::jump(0x1404F63C0, i_clean_str_stub);

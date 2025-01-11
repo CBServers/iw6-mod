@@ -9,7 +9,7 @@ namespace demonware
 		bdGroup();
 
 	private:
-		void set_groups(i_server* server, byte_buffer* buffer) const;
+		void set_groups(i_server* server, byte_buffer* buffer);
 		void get_groups(i_server* server, byte_buffer* buffer);
 
 		uint32_t groups[512]{};

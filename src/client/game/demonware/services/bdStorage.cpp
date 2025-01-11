@@ -119,11 +119,11 @@ namespace demonware
 
 	void bdStorage::set_legacy_user_file(i_server* server, byte_buffer* buffer) const
 	{
-		bool priv;
+		bool visibility;
 		std::string filename, data;
 
 		buffer->read_string(&filename);
-		buffer->read_bool(&priv);
+		buffer->read_bool(&visibility);
 		buffer->read_blob(&data);
 
 		const auto id = *reinterpret_cast<const uint64_t*>(utils::cryptography::sha1::compute(filename).data());
@@ -139,11 +139,11 @@ namespace demonware
 
 		info->file_id = id;
 		info->filename = filename;
-		info->create_time = uint32_t(time(nullptr));
+		info->create_time = static_cast<uint32_t>(std::time(nullptr));
 		info->modified_time = info->create_time;
-		info->file_size = uint32_t(data.size());
+		info->file_size = static_cast<uint32_t>(data.size());
 		info->owner_id = 0;
-		info->priv = priv;
+		info->visibility = visibility;
 
 		auto reply = server->create_reply(this->get_sub_type());
 		reply->add(info);
@@ -170,11 +170,11 @@ namespace demonware
 
 		info->file_id = id;
 		info->filename = "<>";
-		info->create_time = uint32_t(time(nullptr));
+		info->create_time = static_cast<uint32_t>(std::time(nullptr));
 		info->modified_time = info->create_time;
-		info->file_size = uint32_t(data.size());
+		info->file_size = static_cast<uint32_t>(data.size());
 		info->owner_id = 0;
-		info->priv = false;
+		info->visibility = false;
 
 		auto reply = server->create_reply(this->get_sub_type());
 		reply->add(info);
@@ -207,12 +207,12 @@ namespace demonware
 
 	void bdStorage::list_legacy_user_files(i_server* server, byte_buffer* buffer) const
 	{
-		uint64_t unk;
+		uint64_t owner;
 		uint32_t date;
 		uint16_t num_results, offset;
 		std::string filename, data;
 
-		buffer->read_uint64(&unk);
+		buffer->read_uint64(&owner);
 		buffer->read_uint32(&date);
 		buffer->read_uint16(&num_results);
 		buffer->read_uint16(&offset);
@@ -229,9 +229,9 @@ namespace demonware
 			info->filename = filename;
 			info->create_time = 0;
 			info->modified_time = info->create_time;
-			info->file_size = uint32_t(data.size());
-			info->owner_id = 0;
-			info->priv = false;
+			info->file_size = static_cast<uint32_t>(data.size());
+			info->owner_id = owner;
+			info->visibility = false;
 
 			reply->add(info);
 		}
@@ -260,9 +260,9 @@ namespace demonware
 			info->filename = filename;
 			info->create_time = 0;
 			info->modified_time = info->create_time;
-			info->file_size = uint32_t(data.size());
+			info->file_size = static_cast<uint32_t>(data.size());
 			info->owner_id = 0;
-			info->priv = false;
+			info->visibility = false;
 
 			reply->add(info);
 		}
@@ -312,13 +312,13 @@ namespace demonware
 
 	void bdStorage::set_user_file(i_server* server, byte_buffer* buffer) const
 	{
-		bool priv;
+		bool visibility;
 		uint64_t owner;
 		std::string game, filename, data;
 
 		buffer->read_string(&game);
 		buffer->read_string(&filename);
-		buffer->read_bool(&priv);
+		buffer->read_bool(&visibility);
 		buffer->read_blob(&data);
 		buffer->read_uint64(&owner);
 
@@ -329,11 +329,11 @@ namespace demonware
 
 		info->file_id = *reinterpret_cast<const uint64_t*>(utils::cryptography::sha1::compute(filename).data());
 		info->filename = filename;
-		info->create_time = uint32_t(time(nullptr));
+		info->create_time = static_cast<uint32_t>(std::time(nullptr));
 		info->modified_time = info->create_time;
-		info->file_size = uint32_t(data.size());
+		info->file_size = static_cast<uint32_t>(data.size());
 		info->owner_id = owner;
-		info->priv = priv;
+		info->visibility = visibility;
 
 		auto reply = server->create_reply(this->get_sub_type());
 		reply->add(info);

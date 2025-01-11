@@ -53,23 +53,25 @@ namespace rcon
 				const auto client = &game::mp::svs_clients[i];
 				auto self = &game::mp::g_entities[i];
 
+				if (client->header.state == game::CS_FREE || !self || !self->client)
+				{
+					continue;
+				}
+
 				char clean_name[32]{};
 				strncpy_s(clean_name, self->client->sess.cs.name, sizeof(clean_name));
 				game::I_CleanStr(clean_name);
-
-				if (client->header.state > game::CS_FREE && self && self->client)
-				{
-					buffer.append(utils::string::va("%3i %5i %3s %s %32s %16s %21s %5i\n",
-					                                i,
-					                                self->client->sess.scores.score,
-					                                game::SV_BotIsBot(i) ? "Yes" : "No",
-					                                (client->header.state == game::CS_RECONNECTING) ? "CNCT" : (client->header.state == game::CS_ZOMBIE) ? "ZMBI" : utils::string::va("%4i", client->ping),
-					                                game::SV_GetGuid(i),
-					                                clean_name,
-					                                network::net_adr_to_string(client->header.netchan.remoteAddress),
-					                                client->header.netchan.remoteAddress.port)
-					);
-				}
+				
+				buffer.append(utils::string::va("%3i %5i %3s %s %32s %16s %21s %5i\n",
+				                                i,
+				                                self->client->sess.scores.score,
+				                                game::SV_BotIsBot(i) ? "Yes" : "No",
+				                                (client->header.state == game::CS_RECONNECTING) ? "CNCT" : (client->header.state == game::CS_ZOMBIE) ? "ZMBI" : utils::string::va("%4i", client->ping),
+				                                game::SV_GetGuid(i),
+				                                clean_name,
+				                                network::net_adr_to_string(client->header.netchan.remoteAddress),
+				                                client->header.netchan.remoteAddress.port)
+				);
 			}
 
 			return buffer;
