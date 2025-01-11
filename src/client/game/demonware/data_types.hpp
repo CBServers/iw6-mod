@@ -30,7 +30,7 @@ namespace demonware
 		uint64_t file_id;
 		uint32_t create_time;
 		uint32_t modified_time;
-		bool priv;
+		bool visibility;
 		uint64_t owner_id;
 		std::string filename;
 		uint32_t file_size;
@@ -41,7 +41,7 @@ namespace demonware
 			buffer->write_uint64(this->file_id);
 			buffer->write_uint32(this->create_time);
 			buffer->write_uint32(this->modified_time);
-			buffer->write_bool(this->priv);
+			buffer->write_bool(this->visibility);
 			buffer->write_uint64(this->owner_id);
 			buffer->write_string(this->filename);
 		}
@@ -52,7 +52,7 @@ namespace demonware
 			buffer->read_uint64(&this->file_id);
 			buffer->read_uint32(&this->create_time);
 			buffer->read_uint32(&this->modified_time);
-			buffer->read_bool(&this->priv);
+			buffer->read_bool(&this->visibility);
 			buffer->read_uint64(&this->owner_id);
 			buffer->read_string(&this->filename);
 		}

@@ -10,19 +10,35 @@ namespace demonware
 		this->register_service(4, &bdGroup::get_groups);
 	}
 
-	void bdGroup::set_groups(i_server* server, byte_buffer* /*buffer*/) const
+	void bdGroup::set_groups(i_server* server, byte_buffer* buffer)
 	{
-		//uint32_t groupCount;
-		// TODO: Implement array reading
+		uint32_t entries_count{};
+		buffer->read_array_header(game::BD_BB_UNSIGNED_INTEGER32_TYPE, &entries_count);
 
 		auto reply = server->create_reply(this->get_sub_type());
+
+		buffer->set_use_data_types(false);
+
+		for (uint32_t i = 0; i < entries_count; ++i)
+		{
+			uint32_t group_id{};
+			buffer->read_uint32(&group_id);
+
+			if (group_id < ARRAYSIZE(this->groups))
+			{
+				this->groups[group_id] = 999;
+			}
+		}
+
+		buffer->set_use_data_types(true);
+
 		reply->send();
 	}
 
 	void bdGroup::get_groups(i_server* server, byte_buffer* buffer)
 	{
 		uint32_t group_count;
-		buffer->read_array_header(8, &group_count);
+		buffer->read_array_header(game::BD_BB_UNSIGNED_INTEGER32_TYPE, &group_count);
 
 		auto reply = server->create_reply(this->get_sub_type());
 

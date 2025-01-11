@@ -108,6 +108,7 @@ namespace game
 	WEAK symbol<game_hudelem_s*(int clientNum, int teamNum)> HudElem_Alloc{0x0, 0x1403997E0};
 
 	WEAK symbol<char*(char* string)> I_CleanStr{0x140432460, 0x1404F63C0};
+	WEAK symbol<void(char* dest, const char* src, int destsize)> I_strncpyz{0x140432810, 0x1404F67A0};
 
 	WEAK symbol<char*(GfxImage* image, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipCount, 
 		uint32_t imageFlags, DXGI_FORMAT imageFormat, const char* name, const void* initData)>
@@ -243,6 +244,7 @@ namespace game
 
 	WEAK symbol<const char*(const char*)> UI_LocalizeMapname{0, 0x1404B96D0};
 	WEAK symbol<const char*(const char*)> UI_LocalizeGametype{0, 0x1404B90F0};
+	WEAK symbol<void(int localClientNum, const char* srcString, char* dstString, int dstBufferSize)> UI_ReplaceDirective{0x0, 0x1404D8A00};
 
 	WEAK symbol<DWOnlineStatus(int)> dwGetLogOnStatus{0, 0x140589490};
 

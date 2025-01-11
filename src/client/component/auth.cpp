@@ -36,11 +36,8 @@ namespace auth
 			auto hw_profile_path = (utils::properties::get_appdata_path() / "iw6-guid.dat").generic_string();
 			if (utils::io::file_exists(hw_profile_path))
 			{
-				std::string hw_profile_info;
-				if (utils::io::read_file(hw_profile_path, &hw_profile_info) && !hw_profile_info.empty())
-				{
-					return hw_profile_info;
-				}
+				// Migration
+				utils::io::remove_file(hw_profile_path);
 			}
 
 			HW_PROFILE_INFO info;
@@ -50,8 +47,6 @@ namespace auth
 			}
 
 			auto hw_profile_info = std::string{ info.szHwProfileGuid, sizeof(info.szHwProfileGuid) };
-			utils::io::write_file(hw_profile_path, hw_profile_info);
-
 			return hw_profile_info;
 		}
 
@@ -67,7 +62,7 @@ namespace auth
 				return {};
 			}
 
-			const auto size = std::min(data_out.cbData, 52ul);
+			const auto size = std::min<DWORD>(data_out.cbData, 52);
 			std::string result{ reinterpret_cast<char*>(data_out.pbData), size };
 			LocalFree(data_out.pbData);
 
@@ -91,9 +86,72 @@ namespace auth
 			return entropy;
 		}
 
-		utils::cryptography::ecc::key& get_key()
+		bool load_key(utils::cryptography::ecc::key& key)
 		{
-			static auto key = utils::cryptography::ecc::generate_key(512, get_key_entropy());
+			std::string data{};
+
+			auto key_path = (utils::properties::get_appdata_path() / "iw6-private.key").generic_string();
+			if (!utils::io::read_file(key_path, &data))
+			{
+				return false;
+			}
+
+			key.deserialize(data);
+			if (!key.is_valid())
+			{
+				console::error("Loaded key is invalid!\n");
+				return false;
+			}
+
+			return true;
+		}
+
+		utils::cryptography::ecc::key generate_key()
+		{
+			auto key = utils::cryptography::ecc::generate_key(512, get_key_entropy());
+			if (!key.is_valid())
+			{
+				throw std::runtime_error("Failed to generate cryptographic key!");
+			}
+
+			auto key_path = (utils::properties::get_appdata_path() / "iw6-private.key").generic_string();
+			if (!utils::io::write_file(key_path, key.serialize()))
+			{
+				console::error("Failed to write cryptographic key!\n");
+			}
+
+			console::info("Generated cryptographic key: %llX\n", key.get_hash());
+			return key;
+		}
+
+		utils::cryptography::ecc::key load_or_generate_key()
+		{
+			utils::cryptography::ecc::key key{};
+			if (load_key(key))
+			{
+				console::info("Loaded cryptographic key: %llX\n", key.get_hash());
+				return key;
+			}
+
+			return generate_key();
+		}
+
+		utils::cryptography::ecc::key get_key_internal()
+		{
+			auto key = load_or_generate_key();
+
+			auto key_path = (utils::properties::get_appdata_path() / "iw6-public.key").generic_string();
+			if (!utils::io::write_file(key_path, key.get_public_key()))
+			{
+				console::error("Failed to write public key!\n");
+			}
+
+			return key;
+		}
+
+		const utils::cryptography::ecc::key& get_key()
+		{
+			static auto key = get_key_internal();
 			return key;
 		}
 
@@ -101,7 +159,7 @@ namespace auth
 		{
 			std::string connect_string(format, len);
 			game::SV_Cmd_TokenizeString(connect_string.data());
-			const auto _ = gsl::finally([]()
+			const auto _0 = gsl::finally([]()
 			{
 				game::SV_Cmd_EndTokenizedString();
 			});
@@ -124,7 +182,7 @@ namespace auth
 
 			proto::network::connect_info info;
 			info.set_publickey(get_key().get_public_key());
-			info.set_signature(sign_message(get_key(), challenge));
+			info.set_signature(utils::cryptography::ecc::sign_message(get_key(), challenge));
 			info.set_infostring(connect_string);
 
 			network::send(*adr, "connect", info.SerializeAsString());
@@ -165,14 +223,14 @@ namespace auth
 			utils::cryptography::ecc::key key;
 			key.set(info.publickey());
 
-			const auto xuid = strtoull(steam_id.data(), nullptr, 16);
+			const auto xuid = std::strtoull(steam_id.data(), nullptr, 16);
 			if (xuid != key.get_hash())
 			{
 				network::send(*from, "error", "XUID doesn't match the certificate!", '\n');
 				return;
 			}
 
-			if (!key.is_valid() || !verify_message(key, challenge, info.signature()))
+			if (!key.is_valid() || !utils::cryptography::ecc::verify_message(key, challenge, info.signature()))
 			{
 				network::send(*from, "error", "Challenge signature was invalid!", '\n');
 				return;
@@ -232,7 +290,7 @@ namespace auth
 				utils::hook::call(0x1402C4F8E, send_connect_data_stub);
 			}
 
-			command::add("guid", []
+			command::add("guid", []() -> void
 			{
 				console::info("Your guid: %llX\n", steam::SteamUser()->GetSteamID().bits);
 			});
