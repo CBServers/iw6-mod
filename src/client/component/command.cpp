@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/dvars.hpp"
+#include "game/engine/sv_game.hpp"
 
 #include "command.hpp"
 #include "console.hpp"
@@ -459,10 +460,7 @@ namespace command
 				}
 
 				game::sp::g_entities[0].flags ^= game::FL_GODMODE;
-				game::CG_GameMessage(0, utils::string::va("godmode %s",
-				                                          game::sp::g_entities[0].flags & game::FL_GODMODE
-					                                          ? "^2on"
-					                                          : "^1off"));
+				game::CG_GameMessage(0, utils::string::va("godmode %s", game::sp::g_entities[0].flags & game::FL_GODMODE ? "^2on" : "^1off"));
 			});
 
 			add("notarget", []
@@ -473,10 +471,7 @@ namespace command
 				}
 
 				game::sp::g_entities[0].flags ^= game::FL_NOTARGET;
-				game::CG_GameMessage(0, utils::string::va("notarget %s",
-				                                          game::sp::g_entities[0].flags & game::FL_NOTARGET
-					                                          ? "^2on"
-					                                          : "^1off"));
+				game::CG_GameMessage(0, utils::string::va("notarget %s", game::sp::g_entities[0].flags & game::FL_NOTARGET ? "^2on" : "^1off"));
 			});
 			
 			add("noclip", []
@@ -487,10 +482,7 @@ namespace command
 				}
 
 				game::sp::g_entities[0].client->flags ^= 1;
-				game::CG_GameMessage(0, utils::string::va("noclip %s",
-				                                          game::sp::g_entities[0].client->flags & 1
-					                                          ? "^2on"
-					                                          : "^1off"));
+				game::CG_GameMessage(0, utils::string::va("noclip %s", game::sp::g_entities[0].client->flags & 1 ? "^2on" : "^1off"));
 			});
 
 			add("ufo", []
@@ -501,10 +493,7 @@ namespace command
 				}
 
 				game::sp::g_entities[0].client->flags ^= 2;
-				game::CG_GameMessage(0, utils::string::va("ufo %s", 
-				                                          game::sp::g_entities[0].client->flags & 2 
-					                                          ? "^2on" 
-					                                          : "^1off"));
+				game::CG_GameMessage(0, utils::string::va("ufo %s", game::sp::g_entities[0].client->flags & 2 ? "^2on" : "^1off"));
 			});
 
 			add("give", [](const params& params)
@@ -556,78 +545,65 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].flags ^= game::FL_GODMODE;
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-				                               utils::string::va("f \"godmode %s\"",
-				                                                 game::mp::g_entities[client_num].flags & game::FL_GODMODE
-					                                                 ? "^2on"
-					                                                 : "^1off"));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, utils::string::va("f \"godmode %s\"", game::mp::g_entities[client_num].flags & game::FL_GODMODE ? "^2on" : "^1off"));
 			});
 
 			add_sv("notarget", [](const int client_num, const params_sv&)
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].flags ^= game::FL_NOTARGET;
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-				                               utils::string::va("f \"notarget %s\"",
-				     	                                         game::mp::g_entities[client_num].flags & game::FL_NOTARGET 
-					                    	                         ? "^2on" 
-				                    		                         : "^1off"));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
+				                                       utils::string::va("f \"notarget %s\"", game::mp::g_entities[client_num].flags & game::FL_NOTARGET ? "^2on" : "^1off"));
 			});
 
 			add_sv("noclip", [](const int client_num, const params_sv&)
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].client->flags ^= 1;
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-				                               utils::string::va("f \"noclip %s\"",
-				                                                 game::mp::g_entities[client_num].client->flags & 1
-					                                                 ? "^2on"
-					                                                 : "^1off"));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
+				                                       utils::string::va("f \"noclip %s\"", game::mp::g_entities[client_num].client->flags & 1 ? "^2on" : "^1off"));
 			});
 
 			add_sv("ufo", [](const int client_num, const params_sv&)
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				game::mp::g_entities[client_num].client->flags ^= 2;
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-				                               utils::string::va("f \"ufo %s\"",
-				                                                 game::mp::g_entities[client_num].client->flags & 2
-					                                                 ? "^2on"
-					                                                 : "^1off"));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
+				                                       utils::string::va("f \"ufo %s\"", game::mp::g_entities[client_num].client->flags & 2 ? "^2on" : "^1off"));
 			});
 
 			add_sv("setviewpos", [](const int client_num, const params_sv& params)
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 4)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-					                               "f \"You did not specify the correct number of coordinates\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
+					                                       "f \"You did not specify the correct number of coordinates\"");
 					return;
 				}
 
@@ -640,14 +616,14 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 4)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
-					                               "f \"You did not specify the correct number of coordinates\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE,
+					                                       "f \"You did not specify the correct number of coordinates\"");
 					return;
 				}
 
@@ -660,13 +636,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 2)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
 					return;
 				}
 
@@ -683,13 +659,13 @@ namespace command
 			{
 				if (!dvars::sv_cheats->current.enabled)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"Cheats are not enabled on this server\"");
 					return;
 				}
 
 				if (params.size() < 2)
 				{
-					game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
+					game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE, "f \"You did not specify a weapon name\"");
 					return;
 				}
 

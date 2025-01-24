@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/dvars.hpp"
+#include "game/engine/sv_game.hpp"
 
 #include "command.hpp"
 #include "console.hpp"
@@ -380,7 +381,7 @@ namespace party
 				const auto message = params.join(2);
 				const auto* const name = game::Dvar_FindVar("sv_sayName")->current.string;
 
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s: %s\"", 84, name, message.data()));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s: %s\"", 84, name, message.data()));
 				console::info("%s -> %i: %s\n", name, client_num, message.data());
 			});
 
@@ -394,7 +395,7 @@ namespace party
 				const auto client_num = atoi(params.get(1));
 				const auto message = params.join(2);
 
-				game::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s\"", 84, message.data()));
+				game::engine::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s\"", 84, message.data()));
 				console::info("%i: %s\n", client_num, message.data());
 			});
 
@@ -408,7 +409,7 @@ namespace party
 				const auto message = params.join(1);
 				const auto* const name = game::Dvar_FindVar("sv_sayName")->current.string;
 
-				game::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s: %s\"", 84, name, message.data()));
+				game::engine::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s: %s\"", 84, name, message.data()));
 				console::info("%s: %s\n", name, message.data());
 			});
 
@@ -421,7 +422,7 @@ namespace party
 
 				const auto message = params.join(1);
 
-				game::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s\"", 84, message.data()));
+				game::engine::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE, utils::string::va("%c \"%s\"", 84, message.data()));
 				console::info("%s\n", message.data());
 			});
 

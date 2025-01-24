@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/dvars.hpp"
+#include "game/engine/sv_game.hpp"
 
 #include "command.hpp"
 #include "console.hpp"
@@ -290,6 +291,10 @@ namespace patches
 
 		static void patch_mp()
 		{
+			// Bypass Arxan function
+			utils::hook::nop(0x1404758C0, 16);
+			utils::hook::jump(0x1404758C0, game::engine::SV_GameSendServerCommand, true);
+
 			// Register dvars
 			com_register_dvars_hook.create(0x140413A90, &com_register_dvars_stub);
 
