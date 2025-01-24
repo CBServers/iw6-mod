@@ -19,6 +19,7 @@ namespace game
 	WEAK symbol<void(void*, void*)> AimAssist_AddToTargetList{0, 0x140139D80};
 
 	WEAK symbol<void(unsigned int weapon, bool isAlternate, char* output, unsigned int maxStringLen)> BG_GetWeaponNameComplete{0, 0x140239370};
+	WEAK symbol<void()> BG_ClearWeaponDef{0x0, 0x140238D20};
 
 	WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1403BC980, 0x1404131A0};
 	WEAK symbol<const char*(char const**)> Com_Parse{0x1404313E0, 0x1404F50E0};
@@ -57,6 +58,7 @@ namespace game
 	WEAK symbol<int(const RawFile* rawfile)> DB_GetRawFileLen{0x140272E80, 0x14031FF80};
 	WEAK symbol<void(const RawFile* rawfile, char* buf, int size)> DB_GetRawBuffer{0x140272D50, 0x14031FE50};
 	WEAK symbol<int(const char* zoneName)> DB_IsLocalized{0x140273210, 0x140320360};
+	WEAK symbol<int(XAssetType type, void** assets, int maxCount)> DB_GetAllXAssetOfType_FastFile{0x0, 0x14031FC00};
 
 	WEAK symbol<void*(unsigned int size, unsigned int alignment, unsigned int type, PMem_Source source)> PMem_AllocFromSource_NoDebug{0x140430B80, 0x1404F46C0};
 	WEAK symbol<void(const char* name, PMem_Direction allocDir)> PMem_Free{0x140430EC0 , 0x1404F4A30};
@@ -96,6 +98,7 @@ namespace game
 	WEAK symbol<Weapon(const char* pickupName, int model)> G_FindItem{0x140462490, 0x14021B7E0};
 	WEAK symbol<int(playerState_s* ps, Weapon weapon, int dualWield, int startInAltMode, int usedBefore)> G_GivePlayerWeapon{0x140359E20, 0x1403DA5E0};
 	WEAK symbol<Weapon(const char* name)> G_GetWeaponForName{0x140359890, 0x1403DA060};
+	WEAK symbol<void()> G_SetupLevelWeaponDef{0x0, 0x1403DA910};
 	WEAK symbol<void()> G_Glass_Update{0x14030E680, 0x140397450};
 	WEAK symbol<void (playerState_s* ps, Weapon weapon, int hadWeapon)> G_InitializeAmmo{0x140311F00, 0x14039AEA0};
 	WEAK symbol<void(int clientNum, Weapon weapon)> G_SelectWeapon{0x14035A200, 0x1403DA880};
@@ -227,7 +230,7 @@ namespace game
 	WEAK symbol<const char*(int clientNum)> SV_GetGuid{0, 0x140475990};
 	WEAK symbol<void(int clientNum, const char* reason)> SV_KickClientNum{0, 0x14046F730};
 	WEAK symbol<void(int index, const char* string)> SV_SetConfigstring{0, 0x140477450};
-	WEAK symbol<void(int clientNum, svscmd_type type, const char* text)> SV_GameSendServerCommand{0x140490F40, 0x1404758C0};
+	WEAK symbol<int(mp::client_t* client, const unsigned char* cmd, int cmdSize)> SV_CanReplaceServerCommand{0x0, 0x140478F00};
 
 	WEAK symbol<void(const char* error, ...)> Sys_Error{0x14043AC20, 0x1404FF510};
 	WEAK symbol<bool()> Sys_IsDatabaseReady2{0x1403C2D40, 0x140423920};
@@ -254,6 +257,8 @@ namespace game
 		const float*, const Bounds*, int, int)> PM_trace{0, 0x140225DB0};
 
 	WEAK symbol<void(void* ps)> Jump_ClearState{0x0, 0x140213120};
+
+	WEAK symbol<void(const char* pszCommand, char* pszBuffer, int iBufferSize)> MSG_WriteReliableCommandToBuffer{0x0, 0x1404232B0};
 
 	WEAK symbol<void(unsigned __int64 markPos)> LargeLocalResetToMark{0x140423B50, 0x1404E4D00};
 

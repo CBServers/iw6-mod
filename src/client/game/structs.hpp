@@ -1963,6 +1963,12 @@ namespace game
 		const char* buffer;
 	};
 
+	struct WeaponCompleteDef
+	{
+		const char* szInternalName;
+		WeaponDef* weapDef;
+	}; // Incomplete
+
 	union XAssetHeader
 	{
 		void* data;
@@ -1998,9 +2004,9 @@ namespace game
 		menuDef_t *menu;
 		AnimationClass *animClass;
 		LocalizeEntry *localize;
-		WeaponAttachment *attachment;
-		WeaponCompleteDef *weapon;
-		SndDriverGlobals *sndDriverGlobals;
+		WeaponAttachment *attachment;*/
+		WeaponCompleteDef* weapon;
+		/*SndDriverGlobals *sndDriverGlobals;
 		FxEffectDef *fx;
 		FxImpactTable *impactFx;
 		SurfaceFxTable *surfaceFx;*/
@@ -2434,6 +2440,24 @@ namespace game
 			int isInKillcam;
 		};
 
+		struct svscmd_info_t
+		{
+			int time;
+			int type;
+			char cmd[1024];
+		};
+
+		static_assert(sizeof(svscmd_info_t)  == 0x408);
+
+		struct client_net_buffers_t
+		{
+			svscmd_info_t reliableCommandInfo[128];
+			char netchanOutgoingBuffer[131072];
+			char netchanIncomingBuffer[2048];
+		};
+
+		static_assert(sizeof(client_net_buffers_t) == 0x40C00);
+
 		struct client_t
 		{
 			clientHeader_t header;
@@ -2443,7 +2467,17 @@ namespace game
 			int reliableAcknowledge;
 			int reliableSent;
 			int messageAcknowledge;
-			char _0xC30[0x41238];
+			int largeCommandSequence;
+			int gamestateMessageNum;
+			int challenge;
+			client_net_buffers_t netBuf;
+			int cumulThinkTime;
+			int beginCmdIndex;
+			int currCmdIndex;
+			usercmd_s lastUsercmd;
+			usercmd_s cmds[8];
+			int lastClientCommand;
+			char lastClientCommandString[1024];
 			gentity_s* gentity;
 			char name[16];
 			int lastPacketTime;
