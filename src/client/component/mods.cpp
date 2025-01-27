@@ -3,9 +3,12 @@
 #include "game/game.hpp"
 #include "game/dvars.hpp"
 
+#include "command.hpp"
+#include "console.hpp"
 #include "mods.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace mods
 {
@@ -98,6 +101,40 @@ namespace mods
 			a.and_(ebp, r15d);
 			a.jmp(0x1403217F6);
 		});
+
+		bool fs_game_dir_domain_func(game::dvar_t* dvar, game::DvarValue new_value)
+		{
+			if (*new_value.string == '\0')
+			{
+				return true;
+			}
+
+			if (game::I_strnicmp(new_value.string, "mods", 4) != 0)
+			{
+				game::LiveStorage_StatsWriteNotNeeded(game::CONTROLLER_INDEX_0);
+				console::error("ERROR: Invalid server value '%s' for '%s'\n", new_value.string, dvar->name);
+				return false;
+			}
+
+			if (5 < std::strlen(new_value.string) && (new_value.string[4] == '\\' || new_value.string[4] == '/'))
+			{
+				const auto* s1 = std::strstr(new_value.string, "..");
+				const auto* s2 = std::strstr(new_value.string, "::");
+				if (s1 == nullptr && s2 == nullptr)
+				{
+					return true;
+				}
+
+				game::LiveStorage_StatsWriteNotNeeded(game::CONTROLLER_INDEX_0);
+				console::error("ERROR: Invalid server value '%s' for '%s'\n", new_value.string, dvar->name);
+				return false;
+			}
+
+			// Invalid path specified
+			game::LiveStorage_StatsWriteNotNeeded(game::CONTROLLER_INDEX_0);
+			console::error("ERROR: Invalid server value '%s' for '%s'\n", new_value.string, dvar->name);
+			return false;
+		}
 	}
 
 	bool is_using_mods()
@@ -136,6 +173,8 @@ namespace mods
 			// Remove DVAR_INIT from fs_game
 			utils::hook::set<std::uint32_t>(SELECT_VALUE(0x14041C085 + 2, 0x1404DDA45 + 2), SELECT_VALUE(game::DVAR_FLAG_NONE, game::DVAR_FLAG_SERVERINFO));
 
+			utils::hook::inject(SELECT_VALUE(0x14041C097 + 3, 0x1404DDA57 + 3), &fs_game_dir_domain_func);
+
 			if (game::environment::is_sp())
 			{
 				return;
@@ -150,6 +189,44 @@ namespace mods
 
 			// Load mod.ff
 			utils::hook::call(0x1405E7113, db_load_x_assets_stub); // R_LoadGraphicsAssets According to myself but I don't remember where I got it from
+
+			command::add("loadmod", [](const command::params& params) -> void
+			{
+				if (params.size() != 2)
+				{
+					console::info("USAGE: %s \"mods/<mod name>\"", params.get(0));
+					return;
+				}
+
+				std::string mod_name = utils::string::to_lower(params.get(1));
+
+				if (!mod_name.empty() && !mod_name.starts_with("mods/"))
+				{
+					mod_name = "mods/" + mod_name;
+				}
+
+				// change fs_game if needed
+				if (mod_name != (*dvars::fs_gameDirVar)->current.string)
+				{
+					game::Dvar_SetString((*dvars::fs_gameDirVar), mod_name.c_str());
+					command::execute("vid_restart\n");
+				}
+			});
+
+			command::add("unloadmod", [](const command::params& params) -> void
+			{
+				if (*dvars::fs_gameDirVar == nullptr || *(*dvars::fs_gameDirVar)->current.string == '\0')
+				{
+					return;
+				}
+
+				game::Dvar_SetString(*dvars::fs_gameDirVar, "");
+				command::execute("vid_restart\n");
+			});
+
+			// TODO: without a way to monitor all the ways fs_game can be changed there is no way to detect when we
+			// should unregister the path from the internal filesystem we use
+			// HINT: It could be done in fs_game_dir_domain_func, but I haven't tested if that's the best place to monitor for changes and register/unregister the mods folder
 		}
 	};
 }

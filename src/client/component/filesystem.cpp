@@ -83,20 +83,22 @@ namespace filesystem
 
 		void startup()
 		{
-			register_path("iw6");
+			const auto base = std::filesystem::current_path();
+
+			register_path(base / "iw6");
 			register_path(get_binary_directory() + "\\data");
 
-			if (get_binary_directory() != std::filesystem::current_path())
+			if (get_binary_directory() != base)
 			{
-				register_path(std::filesystem::current_path() / "data");
+				register_path(base / "data");
 			}
 
 			// game's search paths
-			register_path("devraw");
-			register_path("devraw_shared");
-			register_path("raw_shared");
-			register_path("raw");
-			register_path("main");
+			register_path(base / "devraw");
+			register_path(base / "devraw_shared");
+			register_path(base / "raw_shared");
+			register_path(base / "raw");
+			register_path(base / "main");
 		}
 
 		void check_for_startup()

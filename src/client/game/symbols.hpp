@@ -20,6 +20,7 @@ namespace game
 
 	WEAK symbol<void(unsigned int weapon, bool isAlternate, char* output, unsigned int maxStringLen)> BG_GetWeaponNameComplete{0, 0x140239370};
 	WEAK symbol<void()> BG_ClearWeaponDef{0x0, 0x140238D20};
+	WEAK symbol<bool()> BG_BotsConnectType{0x0, 0x140217080};
 
 	WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1403BC980, 0x1404131A0};
 	WEAK symbol<const char*(char const**)> Com_Parse{0x1404313E0, 0x1404F50E0};
@@ -87,7 +88,7 @@ namespace game
 	WEAK symbol<void(const dvar_t* dvar, const char* string)> Dvar_SetString{0x14042D6E0, 0x1404F08E0};
 	WEAK symbol<void(const char*, const char*, DvarSetSource)> Dvar_SetFromStringByNameFromSource{0x14042D000, 0x1404F00B0};
 	WEAK symbol<void()> Dvar_Sort{0x14042DEF0, 0x1404F1210};
-	WEAK symbol<const char*(dvar_t* dvar, dvar_value value)> Dvar_ValueToString{0x14042E710, 0x1404F1A30};
+	WEAK symbol<const char*(dvar_t* dvar, DvarValue value)> Dvar_ValueToString{0x14042E710, 0x1404F1A30};
 
 	WEAK symbol<long long (const char* qpath, char** buffer)> FS_ReadFile{0x14041D0B0, 0x1404DE900};
 	WEAK symbol<void(void* buffer)> FS_FreeFile{0x14041D0A0, 0x1404DE8F0};
@@ -120,6 +121,7 @@ namespace game
 	WEAK symbol<const char*(int, int, int)> Key_KeynumToString{0x14023D9A0, 0x1402C40E0};
 
 	WEAK symbol<unsigned int (int)> Live_SyncOnlineDataFlags{0, 0x1405ABF70};
+	WEAK symbol<void(int localControllerIndex)> LiveStorage_StatsWriteNotNeeded{0x1403BA420, 0x140409120};
 
 	WEAK symbol<bool(int controllerIndex, unsigned int name, int value, StatsGroup statsGroup)> LiveStorage_PlayerDataSetIntByName{0x1403B8C20, 0x140404730};
 	WEAK symbol<bool(std::uint8_t* persistentData, const char* lookupString, int value, std::uint8_t* modifiedFlags, StatsGroup statsGroup)> LiveStorage_PlayerDataSetReservedInt{0x1403B8D00, 0x140404820};
@@ -261,6 +263,8 @@ namespace game
 	WEAK symbol<void(const char* pszCommand, char* pszBuffer, int iBufferSize)> MSG_WriteReliableCommandToBuffer{0x0, 0x1404232B0};
 
 	WEAK symbol<void(unsigned __int64 markPos)> LargeLocalResetToMark{0x140423B50, 0x1404E4D00};
+
+	WEAK symbol<int(const char* s0, const char* s1, int n)> I_strnicmp{0x140432840, 0x1404F67D0};
 
 	WEAK symbol<void*(jmp_buf* Buf, int Value)> longjmp{0x14062E030, 0x140738060};
 	WEAK symbol<int (jmp_buf* Buf)> _setjmp{0x14062F030, 0x140739060};

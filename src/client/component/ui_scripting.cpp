@@ -195,6 +195,27 @@ namespace ui_scripting
 			setup_functions();
 
 			lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x14017B120)); // hks::base_print
+
+			lua["directoryexists"] = [](const std::string& string)
+			{
+				return utils::io::directory_exists(string);
+			};
+
+			lua["listfiles"] = [](const std::string& string)
+			{
+				return utils::io::list_files(string);
+			};
+
+			lua["directoryisempty"] = [](const std::string& string)
+			{
+				return utils::io::directory_is_empty(string);
+			};
+
+			lua["fileexists"] = [](const std::string& string)
+			{
+				return utils::io::file_exists(string);
+			};
+
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
 

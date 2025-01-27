@@ -11,7 +11,7 @@
 
 namespace dvar_cheats
 {
-	void apply_sv_cheats(const game::dvar_t* dvar, const game::DvarSetSource source, game::dvar_value* value)
+	void apply_sv_cheats(const game::dvar_t* dvar, const game::DvarSetSource source, game::DvarValue* value)
 	{
 		if (dvar && dvar->name == "sv_cheats"s)
 		{
