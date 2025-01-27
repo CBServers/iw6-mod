@@ -10,6 +10,14 @@ namespace game
 	typedef vec_t vec3_t[3];
 	typedef vec_t vec4_t[4];
 
+	enum ControllerIndex_t
+	{
+		INVALID_CONTROLLER_PORT = -1,
+		CONTROLLER_INDEX_0 = 0x0,
+		CONTROLLER_INDEX_FIRST = 0x0,
+		CONTROLLER_INDEX_COUNT = 0x1,
+	};
+
 	enum
 	{
 		FL_GODMODE = 0x1,
@@ -1171,7 +1179,7 @@ namespace game
 		rgb = 9 // Color without alpha
 	};
 
-	union dvar_value
+	union DvarValue
 	{
 		bool enabled;
 		int integer;
@@ -1214,9 +1222,9 @@ namespace game
 		unsigned int flags; //08
 		dvar_type type; //0C
 		bool modified; //0D
-		dvar_value current; //10
-		dvar_value latched;
-		dvar_value reset;
+		DvarValue current; //10
+		DvarValue latched;
+		DvarValue reset;
 		dvar_limits domain;
 	};
 
@@ -1967,7 +1975,7 @@ namespace game
 	{
 		const char* szInternalName;
 		WeaponDef* weapDef;
-	}; // Incomplete
+	};
 
 	union XAssetHeader
 	{
