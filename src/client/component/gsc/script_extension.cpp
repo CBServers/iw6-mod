@@ -293,6 +293,17 @@ namespace gsc
 			game::Scr_AddInt(game::environment::is_dedi());
 		}
 
+		void scr_bot_auto_connect_enabled()
+		{
+			if (game::environment::is_dedi() && dvars::sv_botsAutoJoin->current.enabled)
+			{
+				game::Scr_AddInt(1); // 2 seems to be unused (incomplete GSC/game mode)
+				return;
+			}
+
+			game::Scr_AddInt(1);
+		}
+
 		const char* get_code_pos(const int index)
 		{
 			if (static_cast<unsigned int>(index) >= game::scr_VmPub->outparamcount)
@@ -391,6 +402,9 @@ namespace gsc
 			utils::hook::set<game::BuiltinFunction>(0x1409E6E20, assert_cmd);
 
 			utils::hook::set<game::BuiltinFunction>(0x1409E94D0, scr_cmd_is_dedicated_server);
+
+			dvars::sv_botsAutoJoin = game::Dvar_RegisterBool("sv_botsAutoJoin", false, game::DVAR_FLAG_NONE, "");
+			utils::hook::set<game::BuiltinFunction>(0x1409E92F0, scr_bot_auto_connect_enabled);
 		}
 	};
 }
