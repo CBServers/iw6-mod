@@ -331,6 +331,10 @@ namespace patches
 			dvars::override::register_int("igs_s1", 1, 0, 1, 0);
 			dvars::override::register_int("igs_crossgame", 1, 0, 1, 0);
 
+			// Required by UI scripts. Missing when joining a dedi and causes crashes
+			game::Dvar_RegisterInt("scr_gun_winlimit", 1, 0, 10, game::DVAR_FLAG_REPLICATED, "Win limit for Gun Game");
+			game::Dvar_RegisterInt("scr_gun_scorelimit", 18, 1, 1000, game::DVAR_FLAG_REPLICATED, "Score limit for Gun Game");
+
 			// Patch game chat on resolutions higher than 1080p to use the right font
 			utils::hook::call(0x14025C825, get_chat_font_handle);
 			utils::hook::call(0x1402BC42F, get_chat_font_handle);
