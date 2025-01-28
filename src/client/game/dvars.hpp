@@ -15,6 +15,7 @@ namespace dvars
 	extern game::dvar_t* con_inputCmdMatchColor;
 
 	extern game::dvar_t* sv_cheats;
+	extern game::dvar_t* sv_botsAutoJoin;
 
 	extern game::dvar_t* g_playerCollision;
 	extern game::dvar_t* g_playerEjection;
