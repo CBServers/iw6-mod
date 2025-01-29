@@ -301,7 +301,7 @@ namespace gsc
 				return;
 			}
 
-			game::Scr_AddInt(1);
+			game::Scr_AddInt(game::BG_BotsConnectType());
 		}
 
 		const char* get_code_pos(const int index)
