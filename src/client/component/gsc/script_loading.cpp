@@ -403,7 +403,7 @@ namespace gsc
 	public:
 		loading()
 		{
-			gsc_ctx = std::make_unique<xsk::gsc::iw6_pc::context>();
+			gsc_ctx = std::make_unique<xsk::gsc::iw6_pc::context>(xsk::gsc::instance::server);
 		}
 
 		void post_unpack() override
