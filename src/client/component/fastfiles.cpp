@@ -7,10 +7,10 @@
 #include "console.hpp"
 #include "fastfiles.hpp"
 
-
 #include <utils/hook.hpp>
-#include <utils/memory.hpp>
 #include <utils/io.hpp>
+#include <utils/memory.hpp>
+#include <utils/string.hpp>
 
 namespace fastfiles
 {
@@ -32,6 +32,12 @@ namespace fastfiles
 				return;
 			}
 
+			const auto out_name = std::format("gsc_dump/{}.gscbin", name);
+			if (utils::io::file_exists(out_name))
+			{
+				return;
+			}
+
 			std::string buffer;
 			buffer.append(header.scriptfile->name, std::strlen(header.scriptfile->name) + 1);
 			buffer.append(reinterpret_cast<char*>(&header.scriptfile->compressedLen), 4);
@@ -40,12 +46,38 @@ namespace fastfiles
 			buffer.append(header.scriptfile->buffer, header.scriptfile->compressedLen);
 			buffer.append(reinterpret_cast<char*>(header.scriptfile->bytecode), header.scriptfile->bytecodeLen);
 
-			const auto out_name = std::format("gsc_dump/{}.gscbin", name);
 			utils::io::write_file(out_name, buffer);
 
-			console::info("Dumped %s\n", out_name.data());
+			console::info("Dumped %s\n", out_name.c_str());
 		}
 
+		void dump_csv_table(const std::string& name, game::XAssetHeader header)
+		{
+			if (!dvars::g_dump_string_tables->current.enabled)
+			{
+				return;
+			}
+
+			const auto out_name = std::format("csv_dump/{}.csv", name);
+			if (utils::io::file_exists(out_name))
+			{
+				return;
+			}
+
+			std::string buffer;
+
+			for (auto row = 0; row < header.stringTable->rowCount; row++)
+			{
+				for (auto column = 0; column < header.stringTable->columnCount; column++)
+				{
+					const auto* string = header.stringTable->values[(row * header.stringTable->columnCount) + column].string;
+					buffer.append(utils::string::va("%s%s", string ? string : "", (column == header.stringTable->columnCount - 1) ? "\n" : ","));
+				}
+			}
+
+			utils::io::write_file(out_name, buffer);
+			console::info("Dumped %s\n", out_name.c_str());
+		}
 
 		game::XAssetHeader db_find_x_asset_header_stub(game::XAssetType type, const char* name, int allow_create_default)
 		{
@@ -56,6 +88,11 @@ namespace fastfiles
 			if (type == game::ASSET_TYPE_SCRIPTFILE)
 			{
 				dump_gsc_script(name, result);
+			}
+
+			if (type == game::ASSET_TYPE_STRINGTABLE)
+			{
+				dump_csv_table(name, result);
 			}
 
 			if (diff > 100)
@@ -110,6 +147,7 @@ namespace fastfiles
 
 			db_find_x_asset_header_hook.create(game::DB_FindXAssetHeader, db_find_x_asset_header_stub);
 			dvars::g_dump_scripts = game::Dvar_RegisterBool("g_dumpScripts", false, game::DVAR_FLAG_NONE, "Dump GSC scripts to binary format");
+			dvars::g_dump_string_tables = game::Dvar_RegisterBool("g_dumpStringTables", false, game::DVAR_FLAG_NONE, "Dump CSV files");
 
 			utils::hook::call(SELECT_VALUE(0x1402752DF, 0x140156350), p_mem_free_stub);
 			utils::hook::call(SELECT_VALUE(0x140276004, 0x140324259), p_mem_free_stub);

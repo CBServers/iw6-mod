@@ -295,6 +295,8 @@ namespace patches
 			utils::hook::nop(0x1404758C0, 16);
 			utils::hook::jump(0x1404758C0, game::engine::SV_GameSendServerCommand, true);
 
+			utils::hook::call(0x140477399, game::engine::SV_SendServerCommand);
+
 			// Register dvars
 			com_register_dvars_hook.create(0x140413A90, &com_register_dvars_stub);
 

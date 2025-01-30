@@ -198,25 +198,6 @@ namespace dedicated
 			return hwnd;
 		}
 
-		void sys_error_stub(const char* msg, ...)
-		{
-			char buffer[2048]{};
-
-			va_list ap;
-			va_start(ap, msg);
-
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
-
-			va_end(ap);
-
-			scheduler::once([]()
-			{
-				command::execute("map_rotate");
-			}, scheduler::pipeline::main, 3s);
-
-			game::Com_Error(game::ERR_DROP, "%s", buffer);
-		}
-
 		void add_commands()
 		{
 			command::add("map", [](const command::params& params)
@@ -363,9 +344,6 @@ namespace dedicated
 			utils::hook::nop(0x1404F8BD9, 5); // Disable sound pak file loading
 			utils::hook::nop(0x1404F8BE1, 2); // ^
 			utils::hook::set<uint8_t>(0x140328660, 0xC3); // Disable image pak file loading
-
-			// Stop crashing from sys_errors
-			utils::hook::jump(0x1404FF510, sys_error_stub);
 
 			// Reduce min required memory
 			utils::hook::set<uint64_t>(0x1404FA6BD, 0x80000000);
