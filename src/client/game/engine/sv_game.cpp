@@ -178,4 +178,29 @@ namespace game::engine
 		assert(static_cast<unsigned>(clientNum) < sv_maxclients->current.unsignedInt);
 		SV_SendServerCommand(&mp::svs_clients[clientNum], type, "%s", text);
 	}
+
+	void SV_ReconnectClients(int savepersist)
+	{
+		const auto* sv_maxclients = Dvar_FindVar("sv_maxclients");
+		for (int i = 0; i < sv_maxclients->current.integer; ++i)
+		{
+			mp::client_t* client = &mp::svs_clients[i];
+			if (client->header.state < CS_CONNECTED)
+			{
+				continue;
+			}
+
+			SV_AddServerCommand(client, SV_CMD_RELIABLE, utils::string::va("%c", savepersist != 0 ? 107 : 118));
+			const char* denied = ClientConnect(i, client->scriptId);
+			if (denied)
+			{
+				SV_DropClient(client, denied, true);
+				console::info("SV_MapRestart_f: dropped client %i - denied!\n", i);
+			}
+			else if (client->header.state == CS_ACTIVE)
+			{
+				SV_ClientEnterWorld(client, &client->lastUsercmd);
+			}
+		}
+	}
 }

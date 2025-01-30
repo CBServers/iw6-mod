@@ -24,6 +24,7 @@ namespace dvars
 	extern game::dvar_t* g_rocketPushbackScale;
 	extern game::dvar_t* g_enableElevators;
 	extern game::dvar_t* g_dump_scripts;
+	extern game::dvar_t* g_dump_string_tables;
 	extern game::dvar_t* g_log;
 
 	extern game::dvar_t* bg_surfacePenetration;

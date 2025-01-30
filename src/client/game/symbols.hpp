@@ -30,6 +30,7 @@ namespace game
 	WEAK symbol<void(float, float, int)> Com_SetSlowMotion{0, 0x1404158C0};
 	WEAK symbol<void(const char* text_in)> Com_TokenizeString{0x1403B4150, 0x1403F7CC0};
 	WEAK symbol<void()> Com_EndTokenizeString{0x1403B37C0, 0x1403F7330};
+	WEAK symbol<void()> Com_StreamSync_UpdateLaunchData{0x0, 0x140411B50};
 
 	WEAK symbol<void(const char* message)> Conbuf_AppendText{0x14043DDE0, 0x1405028C0};
 
@@ -220,6 +221,10 @@ namespace game
 	WEAK symbol<bool()> SV_Loaded{0x140491820, 0x1404770C0};
 	WEAK symbol<void(int localClientNum, const char* map, bool mapIsPreloaded)> SV_StartMap{0, 0x140470170};
 	WEAK symbol<void(int localClientNum, const char* map, bool mapIsPreloaded, bool migrate)> SV_StartMapForParty{0, 0x1404702F0};
+	WEAK symbol<void(mp::client_t* cl, int isReconnectingClient)> SV_StreamSync_ClientConnect{0x0, 0x140488080};
+	WEAK symbol<const char*(int clientNum, unsigned __int16 scriptPersId)> ClientConnect{0x0, 0x140387630};
+	WEAK symbol<void(mp::client_t* client, usercmd_s* cmd)> SV_ClientEnterWorld{0x0, 0x1404710F0};
+	WEAK symbol<void(mp::client_t* drop, const char* reason, bool tellThem)> SV_DropClient{0x0, 0x140472110};
 
 	WEAK symbol<mp::gentity_s*(const char*, unsigned int, unsigned int, unsigned int)> SV_AddBot{0, 0x140470920};
 	WEAK symbol<bool(int clientNum)> SV_BotIsBot{0, 0x140461340};
@@ -344,6 +349,8 @@ namespace game
 		WEAK symbol<int> serverTime{0, 0x14647B280};
 
 		WEAK symbol<XZone> g_zones_0{0, 0x143A46498};
+
+		WEAK symbol<int> s_launchDataAvailable{0x0, 0x1445CE354};
 	}
 
 	namespace hks

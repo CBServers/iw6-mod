@@ -990,6 +990,27 @@ namespace game
 		LOOKUP_ERROR_COUNT = 0x5,
 	};
 
+	struct ComStreamSyncModel
+	{
+		unsigned __int16 modelIndex;
+		unsigned __int8 alternateIndex;
+	};
+
+	static_assert(sizeof(ComStreamSyncModel) == 4);
+
+	struct ComStreamedSyncModelList
+	{
+		unsigned int modelCount;
+		ComStreamSyncModel models[18];
+	};
+
+	static_assert(sizeof(ComStreamedSyncModelList) == 0x4C);
+
+	struct ComStreamedSyncSwapBuffer
+	{
+		ComStreamedSyncModelList modelLists[2];
+	};
+
 	struct StructuredDataEnumEntry
 	{
 		unsigned int name;
