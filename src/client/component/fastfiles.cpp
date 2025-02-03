@@ -152,10 +152,6 @@ namespace fastfiles
 			utils::hook::call(SELECT_VALUE(0x1402752DF, 0x140156350), p_mem_free_stub);
 			utils::hook::call(SELECT_VALUE(0x140276004, 0x140324259), p_mem_free_stub);
 
-			// Allow loading of unsigned fastfiles
-			utils::hook::set<uint8_t>(0x1402FBF23, 0xEB); // DB_LoadXFile
-			utils::hook::nop(0x1402FC445, 2); // DB_SetFileLoadCompressor
-
 			command::add("materiallist", [](const command::params& params)
 			{
 				game::DB_EnumXAssets_FastFile(game::ASSET_TYPE_MATERIAL, [](const game::XAssetHeader header, void*)
@@ -170,6 +166,10 @@ namespace fastfiles
 			if (!game::environment::is_sp())
 			{
 				reallocate_asset_pool(game::ASSET_TYPE_WEAPON, 320);
+
+				// Allow loading of unsigned fastfiles
+				utils::hook::set<uint8_t>(0x1402FBF23, 0xEB); // DB_LoadXFile
+				utils::hook::nop(0x1402FC445, 2); // DB_SetFileLoadCompressor
 			}
 		}
 	};
