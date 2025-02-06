@@ -31,6 +31,7 @@ namespace game
 	WEAK symbol<void(const char* text_in)> Com_TokenizeString{0x1403B4150, 0x1403F7CC0};
 	WEAK symbol<void()> Com_EndTokenizeString{0x1403B37C0, 0x1403F7330};
 	WEAK symbol<void()> Com_StreamSync_UpdateLaunchData{0x0, 0x140411B50};
+	WEAK symbol<int(char* dest, int size, const char* fmt, ...)> Com_sprintf{0x140432310, 0x1404F6260};
 
 	WEAK symbol<void(const char* message)> Conbuf_AppendText{0x14043DDE0, 0x1405028C0};
 
@@ -114,10 +115,10 @@ namespace game
 
 	WEAK symbol<char*(char* string)> I_CleanStr{0x140432460, 0x1404F63C0};
 	WEAK symbol<void(char* dest, const char* src, int destsize)> I_strncpyz{0x140432810, 0x1404F67A0};
+	WEAK symbol<void(char* dest, int size, const char* src)> I_strncat{0x140432740, 0x1404F66D0};
 
 	WEAK symbol<char*(GfxImage* image, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipCount, 
-		uint32_t imageFlags, DXGI_FORMAT imageFormat, const char* name, const void* initData)>
-	Image_Setup{0x140517910, 0x1405E4380};
+	                  uint32_t imageFlags, DXGI_FORMAT imageFormat, const char* name, const void* initData)> Image_Setup{0x140517910, 0x1405E4380};
 
 	WEAK symbol<const char*(int, int, int)> Key_KeynumToString{0x14023D9A0, 0x1402C40E0};
 

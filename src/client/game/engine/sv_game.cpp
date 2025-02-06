@@ -136,7 +136,7 @@ namespace game::engine
 		const auto server_command_buf_large = std::make_unique<char[]>(0x20000);
 
 		va_start(va, fmt);
-		len = vsnprintf_s(server_command_buf_large.get(), 0x20000, _TRUNCATE, fmt, va);
+		len = vsnprintf(server_command_buf_large.get(), 0x20000, fmt, va);
 		va_end(va);
 
 		assert(len >= 0);

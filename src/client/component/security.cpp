@@ -61,6 +61,42 @@ namespace security
 
 			ui_replace_directive_hook.invoke<void>(local_client_num, src_string, dst_string, dst_buffer_size);
 		}
+
+		int hud_elem_set_enum_string_stub(char* string, const char* format, ...)
+		{
+			va_list ap;
+			va_start(ap, format);
+			const auto len = vsnprintf(string, 0x800, format, ap);
+			va_end(ap);
+
+			string[0x800 - 1] = '\0';
+
+			return len;
+		}
+
+		int sv_add_bot_stub(char* string, const char* format, ...)
+		{
+			va_list ap;
+			va_start(ap, format);
+			const auto len = vsnprintf(string, 0x400, format, ap);
+			va_end(ap);
+
+			string[0x400 - 1] = '\0';
+
+			return len;
+		}
+
+		int sv_add_test_client_stub(char* string, const char* format, ...)
+		{
+			va_list ap;
+			va_start(ap, format);
+			const auto len = vsnprintf(string, 0x400, format, ap);
+			va_end(ap);
+
+			string[0x400 - 1] = '\0';
+
+			return len;
+		}
 	}
 
 	class component final : public component_interface
@@ -68,10 +104,17 @@ namespace security
 	public:
 		void post_unpack() override
 		{
+			// sprinf
+			utils::hook::call(SELECT_VALUE(0x140310D0F, 0x140399B0F), hud_elem_set_enum_string_stub);
+
 			if (game::environment::is_sp()) return;
 
 			// Patch vulnerability in PlayerCards_SetCachedPlayerData
 			utils::hook::call(0x140287C5C, set_cached_playerdata_stub);
+
+			// sprinf
+			utils::hook::call(0x140470A88, sv_add_bot_stub);
+			utils::hook::call(0x140470F68, sv_add_test_client_stub);
 
 			// It is possible to make the server hang if left unchecked
 			utils::hook::call(0x14047A29A, sv_execute_client_message_stub);

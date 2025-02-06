@@ -73,8 +73,10 @@ namespace patches
 			if (exec_params.size() == 2)
 			{
 				std::string file_name = exec_params.get(1);
-				if (file_name.find(".cfg") == std::string::npos)
+				if (!file_name.ends_with(".cfg"))
+				{
 					file_name.append(".cfg");
+				}
 
 				const auto file = filesystem::file(file_name);
 				if (file.exists())
@@ -368,6 +370,9 @@ namespace patches
 			utils::hook::nop(0x1403A1A0F, 1);
 			// ^^
 			utils::hook::nop(0x1403A072F, 5); // LiveStorage_RecordMovementInMatchdata
+
+			// Disable Com_Error in NET_SendPacket
+			utils::hook::nop(0x140501AE3, 5);
 		}
 
 		static void patch_sp()

@@ -107,7 +107,7 @@ namespace colors
 
 		int com_sprintf_stub(char* dest, int size, const char* fmt, const char* name)
 		{
-			const auto len = sprintf_s(dest, size, fmt, name);
+			const auto len = game::Com_sprintf(dest, size, fmt, name);
 			if (len < 0)
 			{
 				game::I_strncpyz(dest, "UnnamedAgent", size);

@@ -10,35 +10,7 @@ namespace logger
 {
 	namespace
 	{
-		utils::hook::detour com_error_hook;
-
 		const game::dvar_t* logger_dev = nullptr;
-
-		void print_com_error(int, const char* msg, ...)
-		{
-			char buffer[2048]{};
-			va_list ap;
-
-			va_start(ap, msg);
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
-			va_end(ap);
-
-			console::error("%s", buffer);
-		}
-
-		void com_error_stub(const int error, const char* msg, ...)
-		{
-			char buffer[2048]{};
-			va_list ap;
-
-			va_start(ap, msg);
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
-			va_end(ap);
-
-			console::error("Error: %s\n", buffer);
-
-			com_error_hook.invoke<void>(error, "%s", buffer);
-		}
 
 		void print_warning(const char* msg, ...)
 		{
@@ -46,7 +18,7 @@ namespace logger
 			va_list ap;
 
 			va_start(ap, msg);
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
+			vsnprintf(buffer, sizeof(buffer), msg, ap);
 			va_end(ap);
 
 			console::warn("%s", buffer);
@@ -58,7 +30,7 @@ namespace logger
 			va_list ap;
 
 			va_start(ap, msg);
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
+			vsnprintf(buffer, sizeof(buffer), msg, ap);
 			va_end(ap);
 
 			console::info("%s", buffer);
@@ -75,7 +47,7 @@ namespace logger
 			va_list ap;
 
 			va_start(ap, msg);
-			vsnprintf_s(buffer, _TRUNCATE, msg, ap);
+			vsnprintf(buffer, sizeof(buffer), msg, ap);
 			va_end(ap);
 
 			console::info("%s", buffer);
@@ -140,13 +112,6 @@ namespace logger
 				nullsub_16();
 				sub_1401DAA40();
 			}
-
-			if (!game::environment::is_sp())
-			{
-				utils::hook::call(0x140501AE3, print_com_error);
-			}
-
-			com_error_hook.create(game::Com_Error, com_error_stub);
 
 			// Make havok script's print function actually print
 			utils::hook::jump(SELECT_VALUE(0x1406283A4, 0x140732184), print);

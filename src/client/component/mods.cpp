@@ -16,24 +16,24 @@ namespace mods
 	{
 		utils::hook::detour sys_create_file_hook;
 
-		void db_build_os_path_from_source(const char* zone_name, game::FF_DIR source, unsigned int size, char* filename)
+		void db_build_os_path_from_source(const char* zone_name, game::FF_DIR source, int size, char* filename)
 		{
 			char user_map[MAX_PATH]{};
 
 			switch (source)
 			{
 			case game::FFD_DEFAULT:
-				(void)sprintf_s(filename, size, "%s\\%s.ff", std::filesystem::current_path().string().c_str(), zone_name);
+				(void)game::Com_sprintf(filename, size, "%s\\%s.ff", std::filesystem::current_path().string().c_str(), zone_name);
 				break;
 			case game::FFD_MOD_DIR:
 				assert(mods::is_using_mods());
 
-				(void)sprintf_s(filename, size, "%s\\%s\\%s.ff", std::filesystem::current_path().string().c_str(), (*dvars::fs_gameDirVar)->current.string, zone_name);
+				(void)game::Com_sprintf(filename, size, "%s\\%s\\%s.ff", std::filesystem::current_path().string().c_str(), (*dvars::fs_gameDirVar)->current.string, zone_name);
 				break;
 			case game::FFD_USER_MAP:
-				strncpy_s(user_map, zone_name, _TRUNCATE);
+				game::I_strncpyz(user_map, zone_name, sizeof(user_map));
 
-				(void)sprintf_s(filename, size, "%s\\%s\\%s\\%s.ff", std::filesystem::current_path().string().c_str(), "usermaps", user_map, zone_name);
+				(void)game::Com_sprintf(filename, size, "%s\\%s\\%s\\%s.ff", std::filesystem::current_path().string().c_str(), "usermaps", user_map, zone_name);
 				break;
 			default:
 				assert(false && "inconceivable");

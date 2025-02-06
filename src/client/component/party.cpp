@@ -181,18 +181,21 @@ namespace party
 	{
 		for (auto i = 0; !name.empty() && i < *game::mp::svs_clientCount; ++i)
 		{
-			if (game::mp::g_entities[i].client)
+			if (!game::mp::g_entities[i].client)
 			{
-				char client_name[16] = {0};
-				strncpy_s(client_name, game::mp::g_entities[i].client->sess.cs.name, sizeof(client_name));
-				game::I_CleanStr(client_name);
+				continue;
+			}
 
-				if (client_name == name)
-				{
-					return i;
-				}
+			char client_name[16]{};
+			game::I_strncpyz(client_name, game::mp::g_entities[i].client->sess.cs.name, sizeof(client_name));
+			game::I_CleanStr(client_name);
+
+			if (client_name == name)
+			{
+				return i;
 			}
 		}
+
 		return -1;
 	}
 

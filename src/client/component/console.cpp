@@ -84,15 +84,14 @@ namespace console
 
 		void print_stub(const char* fmt, ...)
 		{
+			char buffer[4096]{};
+
 			va_list ap;
 			va_start(ap, fmt);
-
-			char buffer[4096]{};
-			const auto res = vsnprintf_s(buffer, _TRUNCATE, fmt, ap);
-			(void)res;
-			print_message(buffer);
-
+			[[maybe_unused]] const auto len = vsnprintf(buffer, sizeof(buffer), fmt, ap);
 			va_end(ap);
+
+			print_message(buffer);			
 		}
 
 		void append_text(const char* text)
