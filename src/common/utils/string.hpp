@@ -29,7 +29,7 @@ namespace utils::string
 
 			while (true)
 			{
-				const int res = vsnprintf_s(entry->buffer, entry->size, _TRUNCATE, format, ap);
+				const int res = vsnprintf(entry->buffer, entry->size, format, ap);
 				if (res > 0) break; // Success
 				if (res == 0) return nullptr; // Error
 

@@ -64,9 +64,7 @@ LONG WINAPI exception_handler(PEXCEPTION_POINTERS exception_info)
 		&exception_information, nullptr, nullptr))
 	{
 		char buf[4096]{};
-		sprintf_s(buf, "An exception 0x%08X occurred at location 0x%p\n",
-			exception_info->ExceptionRecord->ExceptionCode,
-			exception_info->ExceptionRecord->ExceptionAddress);
+		sprintf_s(buf, "An exception 0x%08X occurred at location 0x%p\n", exception_info->ExceptionRecord->ExceptionCode, exception_info->ExceptionRecord->ExceptionAddress);
 		game::show_error(buf);
 	}
 

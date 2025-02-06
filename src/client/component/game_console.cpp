@@ -63,7 +63,7 @@ namespace game_console
 
 		void clear()
 		{
-			strncpy_s(con.buffer, "", sizeof(con.buffer));
+			game::I_strncpyz(con.buffer, "", sizeof(con.buffer));
 			con.cursor = 0;
 
 			fixed_input = "";
@@ -249,7 +249,7 @@ namespace game_console
 					               dvars::con_inputDvarInactiveValueColor->current.vector, offset);
 				}
 
-				strncpy_s(con.globals.auto_complete_choice, matches[0].data(), sizeof(con.globals.auto_complete_choice));
+				game::I_strncpyz(con.globals.auto_complete_choice, matches[0].data(), sizeof(con.globals.auto_complete_choice));
 				con.globals.may_auto_complete = true;
 			}
 			else if (matches.size() > 1)
@@ -274,7 +274,7 @@ namespace game_console
 					}
 				}
 
-				strncpy_s(con.globals.auto_complete_choice, matches[0].data(), sizeof(con.globals.auto_complete_choice));
+				game::I_strncpyz(con.globals.auto_complete_choice, matches[0].data(), sizeof(con.globals.auto_complete_choice));
 				con.globals.may_auto_complete = true;
 			}
 		}
@@ -364,11 +364,11 @@ namespace game_console
 
 	void print_internal(const char* fmt, ...)
 	{
-		char va_buffer[0x200] = { 0 };
+		char va_buffer[1024]{};
 
 		va_list ap;
 		va_start(ap, fmt);
-		vsprintf_s(va_buffer, fmt, ap);
+		vsnprintf(va_buffer, sizeof(va_buffer), fmt, ap);
 		va_end(ap);
 
 		const auto formatted = std::string(va_buffer);
@@ -424,7 +424,7 @@ namespace game_console
 						con.buffer[1] = '\0';
 					}
 
-					strncat_s(con.buffer, con.globals.auto_complete_choice, 64);
+					game::I_strncat(con.buffer, sizeof(con.buffer), con.globals.auto_complete_choice);
 					con.cursor = static_cast<int>(std::string(con.buffer).length());
 
 					if (con.cursor != 254)
@@ -549,7 +549,7 @@ namespace game_console
 
 					if (history_index != -1)
 					{
-						strncpy_s(con.buffer, history.at(history_index).c_str(), sizeof(con.buffer));
+						game::I_strncpyz(con.buffer, history.at(history_index).c_str(), sizeof(con.buffer));
 						con.cursor = static_cast<int>(strlen(con.buffer));
 					}
 				}
@@ -564,7 +564,7 @@ namespace game_console
 
 					if (history_index != -1)
 					{
-						strncpy_s(con.buffer, history.at(history_index).c_str(), sizeof(con.buffer));
+						game::I_strncpyz(con.buffer, history.at(history_index).c_str(), sizeof(con.buffer));
 						con.cursor = static_cast<int>(strlen(con.buffer));
 					}
 				}
@@ -721,7 +721,7 @@ namespace game_console
 			con.output_visible = false;
 			con.display_line_offset = 0;
 			con.line_count = 0;
-			strncpy_s(con.buffer, "", sizeof(con.buffer));
+			game::I_strncpyz(con.buffer, "", sizeof(con.buffer));
 
 			con.globals.x = 0.0f;
 			con.globals.y = 0.0f;
@@ -729,7 +729,7 @@ namespace game_console
 			con.globals.font_height = 0.0f;
 			con.globals.may_auto_complete = false;
 			con.globals.info_line_count = 0;
-			strncpy_s(con.globals.auto_complete_choice, "", sizeof(con.globals.auto_complete_choice));
+			game::I_strncpyz(con.globals.auto_complete_choice, "", sizeof(con.globals.auto_complete_choice));
 
 			// add clear command
 			command::add("clear", [&]()
