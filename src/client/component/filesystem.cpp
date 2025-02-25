@@ -31,12 +31,6 @@ namespace filesystem
 			return current_path.data();
 		}
 
-		std::string get_binary_directory()
-		{
-			const auto dir = game_module::get_host_module().get_folder();
-			return utils::string::replace(dir, "/", "\\");
-		}
-
 		void register_custom_path_stub(const char* path, const char* dir)
 		{
 			if (!custom_path_registered)
@@ -242,6 +236,12 @@ namespace filesystem
 				}
 			}
 		}
+	}
+
+	std::string get_binary_directory()
+	{
+		const auto dir = game_module::get_host_module().get_folder();
+		return utils::string::replace(dir, "/", "\\");
 	}
 
 	std::vector<std::string> get_search_paths()

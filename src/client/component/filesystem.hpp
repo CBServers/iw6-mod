@@ -27,4 +27,5 @@ namespace filesystem
 
 	std::vector<std::string> get_search_paths();
 	std::vector<std::string> get_search_paths_rev();
+	std::string get_binary_directory();
 }

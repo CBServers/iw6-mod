@@ -1,5 +1,4 @@
 #include "com.hpp"
-#include "nt.hpp"
 #include "string.hpp"
 
 #include <stdexcept>
@@ -122,5 +121,36 @@ namespace utils::com
 		out_folder = string::convert(result_path);
 
 		return true;
+	}
+
+	IProgressDialog* create_progress_dialog()
+	{
+		HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		bool needUninit = false;
+		if (SUCCEEDED(hr))
+		{
+			if (hr == S_OK)
+			{
+				needUninit = true;
+			}
+		}
+		else
+		{
+			return nullptr;
+		}
+
+		IProgressDialog* progress_dialog;
+		hr = CoCreateInstance(CLSID_ProgressDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&progress_dialog));
+		if (FAILED(hr))
+		{
+			if (needUninit)
+			{
+				CoUninitialize();
+			}
+			
+			return nullptr;
+		}
+
+		return progress_dialog;
 	}
 }

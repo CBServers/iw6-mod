@@ -166,7 +166,7 @@ FARPROC load_binary(const launcher::mode mode)
 	if (!utils::io::read_file(binary, &data))
 	{
 		throw std::runtime_error(
-			"Failed to read game binary! Please select the correct path in the launcher settings.");
+			"Failed to read game binary! Make sure you put iw6x.exe in your Ghosts installation folder.");
 	}
 
 #ifdef INJECT_HOST_AS_LIB
