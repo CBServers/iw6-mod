@@ -224,7 +224,7 @@ newaction {
 
 dependencies.load()
 
-workspace "iw6-mod"
+workspace "iw6x"
 startproject "client"
 location "./build"
 objdir "%{wks.location}/obj"
@@ -302,7 +302,7 @@ project "client"
 kind "WindowedApp"
 language "C++"
 
-targetname "iw6-mod"
+targetname "iw6x"
 
 pchheader "std_include.hpp"
 pchsource "src/client/std_include.cpp"
@@ -319,7 +319,7 @@ dependson {"tlsdll", "runner"}
 
 links {"common"}
 
-prebuildcommands {"pushd %{_MAIN_SCRIPT_DIR}", "premake5 generate-buildinfo", "popd"}
+prebuildcommands {"pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5 generate-buildinfo", "popd"}
 
 if _OPTIONS["copy-to"] then
 	postbuildcommands {"copy /y \"$(TargetPath)\" \"" .. _OPTIONS["copy-to"] .. "\""}
