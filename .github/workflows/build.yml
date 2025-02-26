@@ -30,7 +30,7 @@ jobs:
           git config --global core.eol lf
           
       - name: Check out files
-        uses: actions/checkout@4.2.0
+        uses: actions/checkout@v4.2.0
         with:
           submodules: true
           fetch-depth: 0
