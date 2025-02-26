@@ -19,7 +19,7 @@ namespace utils::properties
 			CoTaskMemFree(path);
 		});
 
-		static auto appdata = std::filesystem::path(path) / "alterware";
+		static auto appdata = std::filesystem::path(path) / "cbservers";
 		return appdata;
 	}
 }

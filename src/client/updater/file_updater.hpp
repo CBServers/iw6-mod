@@ -33,5 +33,6 @@ namespace updater
 		void restore_current_process_file() const;
 		void delete_old_process_file() const;
 		void cleanup_data_directory(const std::vector<file_info>& files) const;
+		void migrate_to_iw6_naming() const;
 	};
 }

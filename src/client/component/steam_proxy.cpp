@@ -151,11 +151,7 @@ namespace steam_proxy
 
 			if (!this->client_user_.invoke<bool>("BIsSubscribedApp", app_id))
 			{
-#ifdef _DEBUG
 				app_id = 480; // Spacewar
-#else
-				return ownership_state::unowned;
-#endif
 			}
 
 			this->client_utils_.invoke<void>("SetAppIDForCurrentPipe", app_id, false);

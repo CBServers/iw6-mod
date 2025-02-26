@@ -7,6 +7,7 @@
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
+#include <utils/io.hpp>
 
 #include "component/console.hpp"
 #include "component/notifies.hpp"
@@ -355,6 +356,24 @@ namespace gsc
 		game::Scr_ErrorInternal();
 	}
 
+	void check_path(const std::filesystem::path& path)
+	{
+		if (path.generic_string().find("..") != std::string::npos)
+		{
+			throw std::runtime_error("Directory traversal is not allowed");
+		}
+	}
+
+	std::string convert_path(const std::filesystem::path& path)
+	{
+		//don't allow GSC to modify files outside of fs_basepath
+		check_path(path);
+
+		static const auto fs_base_game = game::Dvar_FindVar("fs_basepath");
+		const std::filesystem::path fs_base_game_path(fs_base_game->current.string);
+		return (fs_base_game_path / path).generic_string();
+	}
+
 	class extension final : public component_interface
 	{
 	public:
@@ -390,6 +409,76 @@ namespace gsc
 			{
 				const auto* cmd = game::Scr_GetString(0);
 				command::execute(cmd);
+			});
+
+			//IO GSC FUNCS
+
+			add_function("fileexists", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				game::Scr_AddInt(utils::io::file_exists(converted_path));
+			});
+
+			add_function("writefile", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				const auto* data = game::Scr_GetString(1);
+
+				auto append = false;
+				if (game::Scr_GetNumParam() > 2)
+				{
+					append = game::Scr_GetInt(2);
+				}
+
+				game::Scr_AddInt(utils::io::write_file(converted_path, data, append));
+			});
+
+			add_function("readfile", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				game::Scr_AddString(utils::io::read_file(converted_path).data());
+			});
+
+			add_function("filesize", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+        game::Scr_AddInt(static_cast<int>(utils::io::file_size(converted_path)));
+			});
+
+			add_function("createdirectory", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				game::Scr_AddInt(utils::io::create_directory(converted_path));
+			});
+
+			add_function("directoryexists", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				game::Scr_AddInt(utils::io::create_directory(converted_path));
+			});
+
+			add_function("copyfolder", []
+			{
+				const auto* source_path = game::Scr_GetString(0);
+				const auto source_converted = convert_path(source_path);
+
+				const auto* target_path = game::Scr_GetString(0);
+				const auto target_converted = convert_path(target_path);
+
+				game::Scr_AddInt(utils::io::copy_folder(source_converted, target_converted));
+			});
+
+			add_function("removefile", []
+			{
+				const auto* path = game::Scr_GetString(0);
+				const auto converted_path = convert_path(path);
+				game::Scr_AddInt(utils::io::remove_file(converted_path));
 			});
 
 			if (game::environment::is_sp())

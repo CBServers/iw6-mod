@@ -2,6 +2,9 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
+#include "game/scripting/entity.hpp"
+#include "game/scripting/execution.hpp"
+
 #include "command.hpp"
 #include "game_log.hpp"
 #include "notifies.hpp"
@@ -36,6 +39,7 @@ namespace notifies
 
 			if (params[0] == "say"s || params[0] == "say_team"s)
 			{
+				const std::string cmd(params[0]); //ensure params[0] is the same when used later
 				std::string message(game::ConcatArgs(1));
 
 				auto msg_index = 0;
@@ -58,16 +62,21 @@ namespace notifies
 					message.erase(message.begin());
 				}
 
-				scheduler::once([params, message, client_num]
+				scheduler::once([cmd, message, msg_index, hidden, client_num]
 				{
-					const auto* guid = game::SV_GetGuid(client_num);
-					const auto* name = game::mp::svs_clients[client_num].name;
+					const scripting::entity level{*game::levelEntityId};
+					const auto player = scripting::call("getentbynum", {client_num}).as<scripting::entity>();
+					// Remove \x1F before sending the notify only if present
+					const auto notify_msg = msg_index ? message.substr(1) : message;
+
+					scripting::notify(level, cmd, {player, notify_msg, hidden});
+					scripting::notify(player, cmd, {notify_msg, hidden});
 
 					game_log::g_log_printf("%s;%s;%i;%s;%s\n",
-						params.get(0),
-						guid,
+						cmd.data(),
+						player.call("getguid").as<const char*>(),
 						client_num,
-						name,
+						player.get("name").as<const char*>(),
 						message.data()
 					);
 

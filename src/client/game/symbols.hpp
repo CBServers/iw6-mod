@@ -264,6 +264,9 @@ namespace game
 	WEAK symbol<void(const pmove_t* move, trace_t* trace, const float*,
 		const float*, const Bounds*, int, int)> PM_trace{0, 0x140225DB0};
 
+	WEAK symbol<bool(game::pmove_t* pm)> PM_Weapon_InValidChangeWeaponState{ 0x0, 0x140233E20 };
+	WEAK symbol<void(mp::playerState_s* ps)> BG_ClearDropWeaponAnim{ 0x0, 0x14020B500 };
+
 	WEAK symbol<void(void* ps)> Jump_ClearState{0x0, 0x140213120};
 
 	WEAK symbol<void(const char* pszCommand, char* pszBuffer, int iBufferSize)> MSG_WriteReliableCommandToBuffer{0x0, 0x1404232B0};

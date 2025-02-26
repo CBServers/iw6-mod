@@ -52,6 +52,13 @@ namespace dvars
 
 	game::dvar_t** fs_gameDirVar = nullptr;
 
+	game::dvar_t* master_server_ip = nullptr;
+	game::dvar_t* master_server_port = nullptr;
+
+	game::dvar_t* pm_improvedMechanics = nullptr;
+
+	game::dvar_t* ui_showBranding = nullptr;
+
 	std::string dvar_get_vector_domain(const int components, const game::dvar_limits& domain)
 	{
 		if (domain.vector.min == -FLT_MAX)
