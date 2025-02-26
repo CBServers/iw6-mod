@@ -4,4 +4,5 @@
 namespace utils::properties
 {
 	std::filesystem::path get_appdata_path();
+	std::filesystem::path get_key_path();
 }

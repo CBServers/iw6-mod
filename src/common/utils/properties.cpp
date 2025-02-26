@@ -19,6 +19,23 @@ namespace utils::properties
 			CoTaskMemFree(path);
 		});
 
+		static auto appdata = std::filesystem::path(path) / "alterware";
+		return appdata;
+	}
+
+	std::filesystem::path get_key_path()
+	{
+		PWSTR path;
+		if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+		{
+			throw std::runtime_error("Failed to read APPDATA path!");
+		}
+
+		auto _ = gsl::finally([&path]
+		{
+			CoTaskMemFree(path);
+		});
+
 		static auto appdata = std::filesystem::path(path) / "cbservers";
 		return appdata;
 	}
