@@ -133,7 +133,11 @@ namespace dedicated
 
 		void sync_gpu_stub()
 		{
-			std::this_thread::sleep_for(1ms);
+			const auto frame_time = *game::com_frameTime;
+			const auto sys_msec = game::Sys_Milliseconds();
+			const auto msec = frame_time - sys_msec;
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(msec));
 		}
 
 		void gscr_is_using_match_rules_data_stub()
@@ -197,7 +201,7 @@ namespace dedicated
 
 			//utils::hook::set<uint8_t>(0x1402C89A0, 0xC3); // R_Init caller
 			utils::hook::jump(0x1402C89A0, init_dedicated_server);
-			dvars::override::register_int("com_maxfps", 0, 0, 0, game::DVAR_FLAG_READ);
+			//dvars::override::register_int("com_maxfps", 0, 0, 0, game::DVAR_FLAG_READ);
 
 			// delay startup commands until the initialization is done
 			utils::hook::call(0x140412183, execute_startup_command);

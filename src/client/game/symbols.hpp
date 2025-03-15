@@ -327,6 +327,8 @@ namespace game
 	WEAK symbol<int> level_finished{0x0, 0x1443F6FAC};
 	WEAK symbol<int> level_savepersist{0x0, 0x1443F5710};
 
+	WEAK symbol<int> com_frameTime{0x0, 0x1445CEE8C};
+
 	WEAK symbol<DWORD> threadIds{0x144DE6640, 0x1446B4960};
 
 	WEAK symbol<GfxDrawMethod_s> gfxDrawMethod{0x145F525A8, 0x1480350D8};

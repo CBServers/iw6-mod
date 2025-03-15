@@ -245,9 +245,13 @@ namespace patches
 			}
 
 			// changed max value from 85 -> 1000
-			if (!game::environment::is_dedi())
+			if (game::environment::is_dedi())
 			{
-				dvars::override::register_int("com_maxfps", 85, 0, 1000, game::DVAR_FLAG_SAVED);
+				dvars::override::register_int("com_maxfps", 85, 0, 100, game::DVAR_FLAG_NONE);
+			}
+			else
+			{
+				dvars::override::register_int("com_maxfps", 0, 0, 1000, game::DVAR_FLAG_SAVED);
 			}
 
 			if (!game::environment::is_sp())
