@@ -113,6 +113,26 @@ namespace gsc
 
 			return res;
 		}
+
+		bool player_cmd_set_client_dvar_is_valid_name(const char* dvar_name)
+		{
+			if (!game::Dvar_IsValidName(dvar_name))
+			{
+				scr_error(va("%s is an invalid dvar name", dvar_name));
+			}
+
+			return true;
+		}
+
+		void player_cmd_set_client_dvar_server_dvar()
+		{
+			scr_error("server dvar cannot be set as a client dvar");
+		}
+
+		void player_cmd_set_client_dvar_non_writable_dvar()
+		{
+			scr_error("non-writable dvar cannot be set as a client dvar");
+		}
 	}
 
 	unsigned int scr_get_object(unsigned int index)
@@ -300,6 +320,13 @@ namespace gsc
 			utils::hook::jump(SELECT_VALUE(0x1403DE150, 0x1404390B0), scr_get_pointer_type);
 			utils::hook::jump(SELECT_VALUE(0x1403DE320, 0x140439280), scr_get_type);
 			utils::hook::jump(SELECT_VALUE(0x1403DE390, 0x1404392F0), scr_get_type_name);
+
+			if (game::environment::is_mp())
+			{
+				utils::hook::call(0x14038A4F7, player_cmd_set_client_dvar_is_valid_name);
+				utils::hook::call(0x14038A52F, player_cmd_set_client_dvar_server_dvar);
+				utils::hook::call(0x14038A53A, player_cmd_set_client_dvar_non_writable_dvar);
+			}
 		}
 
 		void pre_destroy() override

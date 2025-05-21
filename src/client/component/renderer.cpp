@@ -46,12 +46,11 @@ namespace renderer
 				return;
 			}
 
-			dvars::r_fullbright = game::Dvar_RegisterBool("r_fullbright", false, game::DvarFlags::DVAR_FLAG_SAVED,
+			dvars::r_fullbright = game::Dvar_RegisterBool("r_fullbright", false, game::DVAR_FLAG_CHEAT,
 			                                              "Toggles rendering without lighting");
 
 			r_init_draw_method_hook.create(SELECT_VALUE(0x1404FF600, 0x1405CB470), &r_init_draw_method_stub);
-			r_update_front_end_dvar_options_hook.create(
-				SELECT_VALUE(0x140535FF0, 0x140603240), &r_update_front_end_dvar_options_stub);
+			r_update_front_end_dvar_options_hook.create(SELECT_VALUE(0x140535FF0, 0x140603240), &r_update_front_end_dvar_options_stub);
 		}
 	};
 }
