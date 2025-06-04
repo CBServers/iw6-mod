@@ -13,6 +13,8 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
+#define ALLOW_CUSTOM_BOT_NAMES
+
 namespace bots
 {
 	namespace

@@ -29,9 +29,6 @@
 [submodule "deps/udis86"]
 	path = deps/udis86
 	url = https://github.com/vmt/udis86.git
-[submodule "deps/WinToast"]
-	path = deps/WinToast
-	url = https://github.com/mohabouje/WinToast.git
 [submodule "deps/zlib"]
 	path = deps/zlib
 	url = https://github.com/madler/zlib.git
