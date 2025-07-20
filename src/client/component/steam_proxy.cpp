@@ -26,6 +26,8 @@ namespace steam_proxy
 		ownership_state state_;
 
 		utils::binary_resource runner_file(RUNNER, "runner.exe");
+
+		bool is_disabled() { return true; }
 	}
 
 	class component final : public component_interface
@@ -33,7 +35,7 @@ namespace steam_proxy
 	public:
 		void post_load() override
 		{
-			if (game::environment::is_dedi())
+			if (game::environment::is_dedi() || is_disabled())
 			{
 				return;
 			}

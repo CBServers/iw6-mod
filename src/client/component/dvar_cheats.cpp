@@ -112,23 +112,24 @@ namespace dvar_cheats
 
 	void cg_set_client_dvar_from_server(const int local_client_num, game::mp::cg_s* cg, const char* dvar_id, const char* value)
 	{
-		if (dvar_id == "cg_fov"s || dvar_id == "com_maxfps"s)
-		{
-			return;
-		}
-		
 		const auto* dvar = game::Dvar_FindVar(dvar_id);
-		if (dvar)
-		{
-			// If we send as string, it can't be set with source SERVERCMD because the game only allows that source on real server cmd dvars. 
-			// Just use external instead as if it was being set by the console
-			game::Dvar_SetFromStringByNameFromSource(dvar_id, value, game::DvarSetSource::DVAR_SOURCE_EXTERNAL);
-		}
-		else
+
+		if (!dvar)
 		{
 			// Not a dvar name, assume it is an id and the game will handle normally
 			game::CG_SetClientDvarFromServer(local_client_num, cg, dvar_id, value);
+			return;
 		}
+
+		if (dvar && ((dvar->flags & game::DVAR_FLAG_SAVED) != 0))
+		{
+			console::info("Not allowing server to override archive dvar '%s'\n", dvar->name);
+			return;
+		}
+
+		// If we send as string, it can't be set with source SERVERCMD because the game only allows that source on real server cmd dvars. 
+		// Just use external instead as if it was being set by the console
+		game::Dvar_SetFromStringByNameFromSource(dvar_id, value, game::DVAR_SOURCE_EXTERNAL);
 	}
 
 	void set_client_dvar_by_string(const int entity_num, const char* value)

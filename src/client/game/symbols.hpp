@@ -91,6 +91,7 @@ namespace game
 	WEAK symbol<void(const char*, const char*, DvarSetSource)> Dvar_SetFromStringByNameFromSource{0x14042D000, 0x1404F00B0};
 	WEAK symbol<void()> Dvar_Sort{0x14042DEF0, 0x1404F1210};
 	WEAK symbol<const char*(dvar_t* dvar, DvarValue value)> Dvar_ValueToString{0x14042E710, 0x1404F1A30};
+	WEAK symbol<bool(const char* dvarName)> Dvar_IsValidName{0x0, 0x1404ED0E0};
 
 	WEAK symbol<long long (const char* qpath, char** buffer)> FS_ReadFile{0x14041D0B0, 0x1404DE900};
 	WEAK symbol<void(void* buffer)> FS_FreeFile{0x14041D0A0, 0x1404DE8F0};

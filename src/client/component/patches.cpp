@@ -166,11 +166,11 @@ namespace patches
 			game::AimAssist_AddToTargetList(a1, a2);
 		}
 
-		game::dvar_t* register_cg_fov_stub(const char* name, float value, float min, float /*max*/,
+		game::dvar_t* register_cg_fov_stub(const char* name, const float value, const float min, [[maybe_unused]] const float max,
 		                                   const unsigned int flags,
 		                                   const char* description)
 		{
-			return game::Dvar_RegisterFloat(name, value, min, 160, flags | 1, description);
+			return game::Dvar_RegisterFloat(name, value, min, 160, flags, description);
 		}
 
 		void bsp_sys_error_stub(const char* error, const char* arg1)

@@ -67,6 +67,14 @@ namespace utils::string
 		return std::equal(substring.rbegin(), substring.rend(), text.rbegin());
 	}
 
+	bool compare(const std::string& lhs, const std::string& rhs)
+	{
+		return std::ranges::equal(lhs, rhs, [](const unsigned char a, const unsigned char b)
+		{
+			return std::tolower(a) == std::tolower(b);
+		});
+	}
+
 	bool is_numeric(const std::string& text)
 	{
 		return std::to_string(atoi(text.data())) == text;

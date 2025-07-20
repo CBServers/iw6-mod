@@ -13,6 +13,8 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
+#define ALLOW_CUSTOM_BOT_NAMES
+
 namespace bots
 {
 	namespace
@@ -89,7 +91,11 @@ namespace bots
 
 		bool should_use_remote_bot_names()
 		{
+#ifdef ALLOW_CUSTOM_BOT_NAMES
 			return !filesystem::exists("bots.txt");
+#else
+			return true;
+#endif
 		}
 
 		void parse_bot_names_from_file()

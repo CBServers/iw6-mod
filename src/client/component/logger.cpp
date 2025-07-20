@@ -116,7 +116,7 @@ namespace logger
 			// Make havok script's print function actually print
 			utils::hook::jump(SELECT_VALUE(0x1406283A4, 0x140732184), print);
 
-			logger_dev = game::Dvar_RegisterBool("logger_dev", false, game::DVAR_FLAG_SAVED, "Print dev stuff");
+			logger_dev = game::Dvar_RegisterBool("logger_dev", false, game::DVAR_FLAG_NONE, "Print dev stuff");
 		}
 	};
 }

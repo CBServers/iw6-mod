@@ -33,6 +33,13 @@ namespace auth
 
 		std::string get_hw_profile_guid()
 		{
+			auto hw_profile_path = (utils::properties::get_appdata_path() / "iw6-guid.dat").generic_string();
+			if (utils::io::file_exists(hw_profile_path))
+			{
+				// Migration
+				utils::io::remove_file(hw_profile_path);
+			}
+
 			HW_PROFILE_INFO info;
 			if (!GetCurrentHwProfileA(&info))
 			{

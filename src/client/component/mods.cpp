@@ -16,7 +16,7 @@ namespace mods
 	{
 		utils::hook::detour sys_create_file_hook;
 
-		void db_build_os_path_from_source(const char* zone_name, game::FF_DIR source, int size, char* filename)
+		void db_build_os_path_from_source(const char* zone_name, const game::FF_DIR source, const int size, char* filename)
 		{
 			char user_map[MAX_PATH]{};
 
@@ -41,9 +41,9 @@ namespace mods
 			}
 		}
 
-		game::Sys_File sys_create_file_stub(const char* dir, const char* filename)
+		game::Sys_File sys_create_file_stub(game::Sys_Folder folder, const char* base_filename)
 		{
-			auto result = sys_create_file_hook.invoke<game::Sys_File>(dir, filename);
+			auto result = sys_create_file_hook.invoke<game::Sys_File>(folder, base_filename);
 
 			if (result.handle != INVALID_HANDLE_VALUE)
 			{
@@ -56,7 +56,7 @@ namespace mods
 			}
 
 			// .ff extension was added previously
-			if (!std::strcmp(filename, "mod.ff") && mods::db_mod_file_exists())
+			if (!std::strcmp(base_filename, "mod.ff") && mods::db_mod_file_exists())
 			{
 				char file_path[MAX_PATH]{};
 				db_build_os_path_from_source("mod", game::FFD_MOD_DIR, sizeof(file_path), file_path);
