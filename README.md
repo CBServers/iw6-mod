@@ -1,7 +1,16 @@
-# IW6: A Modded Client
+# IW6x/iw6-mod: A Modded Client
 
 This is a client modification for IW6!
-**NOTE**: You must legally own Call of Duty®: Ghosts® to run this mod. Cracked/Pirated versions of the game are **NOT** supported.
+
+Developed by [AlterWare][aw-link] and X-Labs.
+
+This is a fork of [iw6-mod][iw6-git-link] with CB patches.
+
+Big thanks to all the past contributors and supporters.
+                        
+Join us on [Discord][discord-link] for support.
+
+Follow the original project on [GitHub][aw-git-link] or [Twitter][aw-twitter-link].
 
 ## Build
 - Install [Visual Studio 2022][vs-link] and enable `Desktop development with C++`
@@ -20,12 +29,6 @@ Only the x64 platform is supported. Do not attempt to build for Windows ARM 64 o
 | `--copy-to=PATH`            | Optional, copy the EXE to a custom folder after build, define the path here if wanted. |
 | `--dev-build`               | Enable development builds of the client. |
 
-## Contributing
-
-Contributions are welcome! Please follow the guidelines below:
-
-- Sign [AlterWare CLA][cla-link] and send a pull request or email your patch at patches@alterware.dev
-- Make sure that PRs have only one commit, and deal with one issue only
 
 ## Disclaimer
 
@@ -34,7 +37,11 @@ academic research. It is not intended to be used to attack
 other systems. Project maintainers are not responsible or
 liable for misuse of the software. Use responsibly.
 
+[aw-link]:                https://alterware.dev
+[aw-git-link]:            https://github.com/alterware
+[aw-twitter-link]:        https://x.com/alterwaredev
+[iw6-git-link]:           https://git.alterware.dev/alterware/iw6-mod
+[discord-link]:           https://cbservers.xyz/discord
 [premake5-link]:          https://premake.github.io
 [git-link]:               https://git-scm.com
 [vs-link]:                https://visualstudio.microsoft.com/vs
-[cla-link]:               https://alterware.dev/cla
