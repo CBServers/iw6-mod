@@ -1,16 +1,26 @@
 # IW6x/iw6-mod: A Modded Client
 
-This is a client modification for IW6!
+This is a client modification for IW6!  
+Developed by X Labs and [AlterWare](https://alterware.dev).  
+This is a fork of IW6x/[iw6-mod](https://git.alterware.dev/alterware/iw6-mod) with added CB patches.  
+Big thanks to all the contributors.              
+Join us on [Discord](https://cbservers.xyz/discord) for support.  
+Follow the original project on [GitHub](https://github.com/alterware) or [Twitter](https://x.com/alterwaredev).
 
-Developed by [AlterWare][aw-link] and X-Labs.
+NOTE: This fork is not affiliated or endorsed by AlterWare. Please do not bug original client maintainers with support requests in regards to this fork.
 
-This is a fork of [iw6-mod][iw6-git-link] with CB patches.
-
-Big thanks to all the past contributors and supporters.
-                        
-Join us on [Discord][discord-link] for support.
-
-Follow the original project on [GitHub][aw-git-link] or [Twitter][aw-twitter-link].
+## Changes
+- Remove branding by default (`ui_showBranding`)
+- Add master server IP/Port dvar (`masterServerIP` & `masterServerPort`)
+- Add custom texture support with "images" folder (from OG IW6x)
+- Send in-game chat as "say/say_team" GSC notifies
+- Fix bug with say commands not always registering
+- Add GSC methods for IO
+- Fix killcam slowdown (thanks to Joelrau h1 fix)
+- Show proper errors to user when failing to connect to servers
+- Add OG MW2 mechanics with `pm_improvedMechanics` dvar (thanks to plugwalker47)
+- Add map related commands to client as well
+- Use shared CB GUID keys
 
 ## Build
 - Install [Visual Studio 2022][vs-link] and enable `Desktop development with C++`
@@ -37,11 +47,6 @@ academic research. It is not intended to be used to attack
 other systems. Project maintainers are not responsible or
 liable for misuse of the software. Use responsibly.
 
-[aw-link]:                https://alterware.dev
-[aw-git-link]:            https://github.com/alterware
-[aw-twitter-link]:        https://x.com/alterwaredev
-[iw6-git-link]:           https://git.alterware.dev/alterware/iw6-mod
-[discord-link]:           https://cbservers.xyz/discord
 [premake5-link]:          https://premake.github.io
 [git-link]:               https://git-scm.com
 [vs-link]:                https://visualstudio.microsoft.com/vs
