@@ -41,6 +41,13 @@ FARPROC loader::load_library(const std::string& filename) const
 		throw std::runtime_error("Failed to map binary!");
 	}
 
+	const auto base = size_t(target.get_ptr());
+	if (base != 0x140000000)
+	{
+		throw std::runtime_error{ utils::string::va("Binary was mapped at 0x%llX (instead of 0x%llX). Make sure Force randomization for images (ASLR) and Memory Integrity is disabled in Windows Security Settings.", base, 0x140000000) };
+	}
+
+
 	this->load_imports(target, target);
 	this->load_tls(target, target);
 
