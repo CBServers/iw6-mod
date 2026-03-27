@@ -148,3 +148,6 @@ user*.bat
 
 # Premake binary
 #premake5.exe
+
+CLAUDE.md
+.claude/*

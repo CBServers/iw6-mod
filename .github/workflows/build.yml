@@ -84,7 +84,7 @@ jobs:
 
       - name: Download hashing executable
         run: |
-          Invoke-WebRequest -Uri "https://github.com/CBServers/updater/releases/download/v1.0.0/update-hasher.exe" -OutFile "update-hasher.exe"
+          Invoke-WebRequest -Uri "https://github.com/CBServers/updater/releases/latest/download/update-hasher.exe" -OutFile "update-hasher.exe"
 
       - name: Generate hashed.json
         run: |
