@@ -94,6 +94,7 @@ namespace party
 			info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
 			info.set("mapname", dvars::get_string("mapname"));
 			info.set("isPrivate", dvars::get_string("g_password").empty() ? "0" : "1");
+			info.set("joinable", (game::environment::is_dedi() || game::Dvar_GetBool("nat_open")) ? "1" : "0");
 			info.set("clients", std::to_string(get_client_count()));
 			info.set("bots", std::to_string(get_bot_count()));
 			info.set("sv_maxclients", std::to_string(*game::mp::svs_clientCount));
@@ -589,6 +590,15 @@ namespace party
 				if (game_name != "IW6"s)
 				{
 					const auto* error_msg = "Invalid gamename.";
+					console::error("%s\n", error_msg);
+					game::Com_Error(game::ERR_DROP, "%s", error_msg);
+					return;
+				}
+
+				// Only block when explicitly closed ("0"); a missing field stays joinable.
+				if (info.get("joinable") == "0")
+				{
+					const auto* error_msg = "This match is not open to joining. Ask the host to open it from the pause menu.";
 					console::error("%s\n", error_msg);
 					game::Com_Error(game::ERR_DROP, "%s", error_msg);
 					return;
