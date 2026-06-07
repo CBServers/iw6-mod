@@ -11,6 +11,14 @@ namespace network
 	bool are_addresses_equal(const game::netadr_s& a, const game::netadr_s& b);
 
 	const char* net_adr_to_string(const game::netadr_s& a);
+
+	game::netadr_s address_from_string(const std::string& address);
+	std::string address_to_string(const game::netadr_s& address);
+
+	bool is_ip_address(const game::netadr_s& address);
+	bool is_private_ip(const game::netadr_s& address);
+	bool is_valid_public_ip(const game::netadr_s& address);
+	bool is_connectable_address(const game::netadr_s& address);
 }
 
 inline bool operator==(const game::netadr_s& a, const game::netadr_s& b)

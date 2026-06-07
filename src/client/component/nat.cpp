@@ -1,0 +1,524 @@
+#include <std_include.hpp>
+#include "loader/component_loader.hpp"
+#include "game/game.hpp"
+
+#include "command.hpp"
+#include "console.hpp"
+#include "nat.hpp"
+#include "network.hpp"
+#include "scheduler.hpp"
+
+#include <utils/string.hpp>
+
+#include <random>
+#include <sstream>
+
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#pragma comment(lib, "iphlpapi.lib")
+
+namespace nat
+{
+	namespace
+	{
+		game::dvar_t* rendezvous_ip{};
+		game::dvar_t* rendezvous_port{};
+		game::dvar_t* nat_open_dvar{};
+
+		// All state below is touched only on the main thread, so no locking is needed.
+		bool hosting_enabled{}; // host opted in via nat_host; mirrored into the nat_open dvar
+		std::string host_token{}; // non-empty while hosting
+		std::string observed_public_endpoint{}; // our public endpoint, reflected by the rendezvous
+
+		struct punch_attempt
+		{
+			bool active = false;
+			bool joining = false; // true => we issue "connect" on success
+			bool connected = false;
+			std::string token{};
+			std::string fallback_address{}; // joiner-only: tried on timeout
+			std::vector<game::netadr_s> candidates{};
+			std::chrono::steady_clock::time_point deadline{};
+		};
+
+		punch_attempt punch{};
+
+		// A listen-server private match: a local server is running, we're in-game (not the
+		// frontend menu, where SV_Loaded can also be true), and we're not a dedicated server.
+		bool is_hosting()
+		{
+			return game::SV_Loaded() && game::CL_IsCgameInitialized() && !game::environment::is_dedi();
+		}
+
+		bool get_rendezvous_server(game::netadr_s& address)
+		{
+			const auto* ip = rendezvous_ip->current.string;
+			const auto* port = rendezvous_port->current.string;
+			address = network::address_from_string(utils::string::va("%s:%s", ip, port));
+			return address.type != game::NA_BAD;
+		}
+
+		uint16_t get_local_port()
+		{
+			const auto port = game::Dvar_GetInt("net_port");
+			if (port >= 1024 && port <= 65535)
+			{
+				return static_cast<uint16_t>(port);
+			}
+
+			return 27016;
+		}
+
+		std::string make_address(const std::string& host, const uint16_t port)
+		{
+			if (host.empty() || port < 1024)
+			{
+				return {};
+			}
+
+			const auto parsed = network::address_from_string(utils::string::va("%s:%hu", host.data(), port));
+			if (!network::is_connectable_address(parsed))
+			{
+				return {};
+			}
+
+			return network::address_to_string(parsed);
+		}
+
+		std::string get_local_candidate()
+		{
+			std::string ip;
+			const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+			if (sock != INVALID_SOCKET)
+			{
+				sockaddr_in target{};
+				target.sin_family = AF_INET;
+				target.sin_port = htons(53);
+				inet_pton(AF_INET, "8.8.8.8", &target.sin_addr);
+
+				if (connect(sock, reinterpret_cast<sockaddr*>(&target), sizeof(target)) == 0)
+				{
+					sockaddr_in local{};
+					int length = sizeof(local);
+					if (getsockname(sock, reinterpret_cast<sockaddr*>(&local), &length) == 0)
+					{
+						char buffer[INET_ADDRSTRLEN]{};
+						inet_ntop(AF_INET, &local.sin_addr, buffer, sizeof(buffer));
+						ip = buffer;
+					}
+				}
+
+				closesocket(sock);
+			}
+
+			if (ip.empty())
+			{
+				return {};
+			}
+
+			return ip + ":" + std::to_string(get_local_port());
+		}
+
+		// A Radmin (26.x) / Hamachi (25.x) address, if present; these VPNs bypass NAT.
+		std::string get_vpn_candidate()
+		{
+			ULONG length = 15000;
+			std::vector<unsigned char> buffer(length);
+			auto* adapter_info = reinterpret_cast<IP_ADAPTER_INFO*>(buffer.data());
+
+			if (GetAdaptersInfo(adapter_info, &length) == ERROR_BUFFER_OVERFLOW)
+			{
+				buffer.resize(length);
+				adapter_info = reinterpret_cast<IP_ADAPTER_INFO*>(buffer.data());
+			}
+
+			if (GetAdaptersInfo(adapter_info, &length) != NO_ERROR)
+			{
+				return {};
+			}
+
+			std::string radmin_ip;
+			std::string hamachi_ip;
+
+			for (auto* adapter = adapter_info; adapter; adapter = adapter->Next)
+			{
+				const std::string ip = adapter->IpAddressList.IpAddress.String;
+				if (ip == "0.0.0.0" || ip.empty())
+				{
+					continue;
+				}
+
+				if (ip.rfind("26.", 0) == 0)
+				{
+					radmin_ip = ip;
+				}
+				else if (ip.rfind("25.", 0) == 0)
+				{
+					hamachi_ip = ip;
+				}
+			}
+
+			const auto& vpn_ip = !radmin_ip.empty() ? radmin_ip : hamachi_ip;
+			return vpn_ip.empty() ? std::string{} : make_address(vpn_ip, get_local_port());
+		}
+
+		std::vector<std::string> gather_candidates()
+		{
+			std::vector<std::string> candidates;
+			if (auto lan = get_local_candidate(); !lan.empty())
+			{
+				candidates.push_back(std::move(lan));
+			}
+
+			if (auto vpn = get_vpn_candidate(); !vpn.empty())
+			{
+				candidates.push_back(std::move(vpn));
+			}
+
+			return candidates;
+		}
+
+		std::string generate_token()
+		{
+			static constexpr char hex[] = "0123456789abcdef";
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
+			std::uniform_int_distribution<int> dist(0, 15);
+
+			std::string token;
+			token.reserve(16);
+			for (int i = 0; i < 16; ++i)
+			{
+				token.push_back(hex[dist(gen)]);
+			}
+
+			return token;
+		}
+
+		std::vector<std::string> split_ws(const std::string& text)
+		{
+			std::vector<std::string> out;
+			std::istringstream stream(text);
+			std::string token;
+			while (stream >> token)
+			{
+				out.push_back(token);
+			}
+
+			return out;
+		}
+
+		void send_to_rendezvous(const std::string& command, const std::string& token)
+		{
+			game::netadr_s addr{};
+			if (!get_rendezvous_server(addr))
+			{
+				console::warn("[nat] could not resolve rendezvous server\n");
+				return;
+			}
+
+			auto data = token;
+			for (const auto& candidate : gather_candidates())
+			{
+				data += " " + candidate;
+			}
+
+			network::send(addr, command, data);
+		}
+
+		void add_candidate(const game::netadr_s& address)
+		{
+			if (!network::is_ip_address(address))
+			{
+				return;
+			}
+
+			for (const auto& existing : punch.candidates)
+			{
+				if (network::are_addresses_equal(existing, address))
+				{
+					return;
+				}
+			}
+
+			punch.candidates.push_back(address);
+		}
+
+		void send_punch_round()
+		{
+			for (const auto& candidate : punch.candidates)
+			{
+				network::send(candidate, "punch", punch.token);
+			}
+		}
+
+		void issue_connect(const std::string& address)
+		{
+			console::info("[nat] connecting to %s\n", address.data());
+			command::execute("connect " + address);
+		}
+
+		void show_join_error()
+		{
+			console::error("[nat] could not reach the host. They may be on a restricted network (e.g. a mobile "
+				"hotspot). Ask them to host on home Wi-Fi, port-forward, or use a VPN like Radmin.\n");
+		}
+
+		void feed_candidates(const std::vector<std::string>& candidate_strings)
+		{
+			for (const auto& candidate : candidate_strings)
+			{
+				add_candidate(network::address_from_string(candidate));
+			}
+		}
+
+		void punch_frame()
+		{
+			if (!punch.active)
+			{
+				return;
+			}
+
+			if (std::chrono::steady_clock::now() > punch.deadline)
+			{
+				if (!punch.connected && punch.joining)
+				{
+					if (!punch.fallback_address.empty())
+					{
+						console::info("[nat] no direct path; trying fallback %s\n", punch.fallback_address.data());
+						issue_connect(punch.fallback_address);
+					}
+					else
+					{
+						console::warn("[nat] join failed for token=%s (no direct path)\n", punch.token.data());
+						show_join_error();
+					}
+				}
+
+				punch.active = false;
+				return;
+			}
+
+			send_punch_round();
+		}
+
+		void set_hosting_enabled(bool enabled)
+		{
+			hosting_enabled = enabled;
+			if (nat_open_dvar)
+			{
+				game::Dvar_SetBool(nat_open_dvar, enabled);
+			}
+
+			if (!enabled)
+			{
+				host_token.clear();
+				observed_public_endpoint.clear();
+			}
+		}
+
+		// is_hosting() excludes the frontend menu, where SV_Loaded is also true.
+		void update_host_session()
+		{
+			if (is_hosting() && hosting_enabled)
+			{
+				if (host_token.empty())
+				{
+					host_token = generate_token();
+					console::info("[nat] opened private match to friends, token=%s\n", host_token.data());
+				}
+
+				send_to_rendezvous("privRegister", host_token); // register + keepalive
+			}
+			else if (hosting_enabled || !host_token.empty())
+			{
+				// Toggled off, match ended, or returned to menu: close + reset the toggle.
+				if (!host_token.empty())
+				{
+					console::info("[nat] closing private match, dropping token=%s\n", host_token.data());
+				}
+
+				set_hosting_enabled(false);
+			}
+		}
+	}
+
+	std::string current_token()
+	{
+		return host_token;
+	}
+
+	std::string get_host_endpoint()
+	{
+		// Gated on host_token so the advertised endpoint and join-secret token agree.
+		if (host_token.empty())
+		{
+			return {};
+		}
+
+		// Fallback priority when punching fails: public (port-forward) > VPN > LAN.
+		if (!observed_public_endpoint.empty())
+		{
+			return observed_public_endpoint;
+		}
+
+		if (auto vpn = get_vpn_candidate(); !vpn.empty())
+		{
+			return vpn;
+		}
+
+		return get_local_candidate();
+	}
+
+	void begin_join(const std::string& token, const std::string& fallback_address)
+	{
+		punch = punch_attempt{};
+		punch.active = true;
+		punch.joining = true;
+		punch.token = token;
+		punch.fallback_address = fallback_address;
+		punch.deadline = std::chrono::steady_clock::now() + 12s;
+
+		console::info("[nat] joining token=%s (fallback=%s)\n", token.data(),
+			fallback_address.empty() ? "none" : fallback_address.data());
+		send_to_rendezvous("privJoin", token);
+	}
+
+	class component final : public component_interface
+	{
+	public:
+		void post_unpack() override
+		{
+			if (game::environment::is_sp() || game::environment::is_dedi())
+			{
+				return;
+			}
+
+			scheduler::once([]
+			{
+				rendezvous_ip = game::Dvar_RegisterString("rendezvousServerIP", "master.cbservers.xyz",
+					game::DVAR_FLAG_NONE, "IP of the private-game rendezvous server");
+				rendezvous_port = game::Dvar_RegisterString("rendezvousServerPort", "20810",
+					game::DVAR_FLAG_NONE, "Port of the private-game rendezvous server");
+				nat_open_dvar = game::Dvar_RegisterBool("nat_open", false, game::DVAR_FLAG_NONE,
+					"Allow friends to join this private match");
+			}, scheduler::pipeline::main);
+
+			network::on("privRegisterAck", [](const game::netadr_s&, const std::string& data)
+			{
+				// The rendezvous reflects our observed public endpoint (STUN-style).
+				if (const auto parsed = network::address_from_string(data);
+					network::is_connectable_address(parsed))
+				{
+					observed_public_endpoint = network::address_to_string(parsed);
+				}
+			});
+
+			// privPeer payload: "<token> <cand1> <cand2> ..."
+			network::on("privPeer", [](const game::netadr_s&, const std::string& data)
+			{
+				const auto fields = split_ws(data);
+				if (fields.empty())
+				{
+					return;
+				}
+
+				const auto& token = fields[0];
+				const std::vector<std::string> candidates(fields.begin() + 1, fields.end());
+
+				if (punch.active && punch.joining && punch.token == token)
+				{
+					// Joiner: feed the host's candidates into our active attempt.
+					feed_candidates(candidates);
+					send_punch_round();
+				}
+				else if (!host_token.empty() && token == host_token)
+				{
+					// Host: punch toward the joiner so our NAT opens. No connect.
+					punch = punch_attempt{};
+					punch.active = true;
+					punch.joining = false;
+					punch.token = token;
+					punch.deadline = std::chrono::steady_clock::now() + 10s;
+					feed_candidates(candidates);
+					send_punch_round();
+				}
+			});
+
+			network::on("privReject", [](const game::netadr_s&, const std::string& data)
+			{
+				console::warn("[nat] privReject: %s\n", data.data());
+				if (punch.active && punch.joining)
+				{
+					// Session gone: fall straight to the direct path if we have one.
+					punch.deadline = std::chrono::steady_clock::now();
+				}
+			});
+
+			// Ack the observed source address, not the claimed one (symmetric NAT).
+			network::on("punch", [](const game::netadr_s& from, const std::string& token)
+			{
+				network::send(from, "punchAck", token);
+
+				if (punch.active && punch.token == token)
+				{
+					add_candidate(from);
+				}
+			});
+
+			network::on("punchAck", [](const game::netadr_s& from, const std::string& token)
+			{
+				if (!punch.active || punch.token != token || punch.connected)
+				{
+					return;
+				}
+
+				punch.connected = true;
+				punch.active = false;
+
+				const auto endpoint = network::address_to_string(from);
+				if (punch.joining)
+				{
+					console::info("[nat] direct path open to %s\n", endpoint.data());
+					issue_connect(endpoint);
+				}
+				else
+				{
+					console::info("[nat] host path open to %s\n", endpoint.data());
+				}
+			});
+
+			scheduler::loop(punch_frame, scheduler::pipeline::main, 250ms);
+
+			// Host session register/keepalive/teardown, driven purely by game state.
+			scheduler::loop(update_host_session, scheduler::pipeline::main, 5s);
+
+			// Toggle whether the current private match is open to friends.
+			command::add("nat_host", [](const command::params&)
+			{
+				if (!is_hosting())
+				{
+					console::warn("[nat] not hosting a match; cannot open to friends\n");
+					return;
+				}
+
+				set_hosting_enabled(!hosting_enabled);
+				console::info("[nat] match is now %s to friends\n", hosting_enabled ? "OPEN" : "CLOSED");
+			});
+
+			// Manual join for debugging.
+			command::add("nat_join", [](const command::params& params)
+			{
+				if (params.size() < 2)
+				{
+					console::info("[nat] usage: nat_join <token>\n");
+					return;
+				}
+
+				begin_join(params.get(1), {});
+			});
+		}
+	};
+}
+
+REGISTER_COMPONENT(nat::component)

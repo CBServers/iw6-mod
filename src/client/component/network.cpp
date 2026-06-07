@@ -166,6 +166,55 @@ namespace network
 		return "bad";
 	}
 
+	game::netadr_s address_from_string(const std::string& address)
+	{
+		game::netadr_s addr{};
+		if (!game::NET_StringToAdr(address.data(), &addr))
+		{
+			addr.type = game::NA_BAD;
+		}
+
+		return addr;
+	}
+
+	std::string address_to_string(const game::netadr_s& address)
+	{
+		return net_adr_to_string(address);
+	}
+
+	bool is_ip_address(const game::netadr_s& address)
+	{
+		return address.type == game::NA_IP;
+	}
+
+	bool is_private_ip(const game::netadr_s& address)
+	{
+		return address.ip[0] == 10
+			|| (address.ip[0] == 100 && address.ip[1] >= 64 && address.ip[1] <= 127)
+			|| (address.ip[0] == 172 && address.ip[1] >= 16 && address.ip[1] <= 31)
+			|| (address.ip[0] == 192 && address.ip[1] == 168)
+			|| (address.ip[0] == 169 && address.ip[1] == 254);
+	}
+
+	bool is_valid_public_ip(const game::netadr_s& address)
+	{
+		return is_ip_address(address)
+			&& address.ip[0] != 0
+			&& address.ip[0] != 127
+			&& address.ip[0] < 224
+			&& !is_private_ip(address);
+	}
+
+	// Like is_valid_public_ip but allows private/VPN ranges (join targets, candidates).
+	bool is_connectable_address(const game::netadr_s& address)
+	{
+		return is_ip_address(address)
+			&& address.ip[0] != 0
+			&& address.ip[0] != 127
+			&& address.ip[0] < 224
+			&& ::ntohs(address.port) >= 1024;
+	}
+
 	void set_xuid_config_string_stub(utils::hook::assembler& a)
 	{
 		const auto return_regular = a.newLabel();
