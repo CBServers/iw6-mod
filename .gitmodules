@@ -3,7 +3,7 @@
 	url = https://github.com/asmjit/asmjit.git
 [submodule "deps/discord-rpc"]
 	path = deps/discord-rpc
-	url = https://git.alterware.dev/AlterWare/discord-rpc.git
+	url = https://github.com/discord/discord-rpc.git
 [submodule "deps/gsc-tool"]
 	path = deps/gsc-tool
 	url = https://github.com/xensik/gsc-tool.git

@@ -32,24 +32,10 @@ jobs:
       - name: Check out files
         uses: actions/checkout@v4.2.0
         with:
-          submodules: false
+          submodules: true
           fetch-depth: 0
           # NOTE - If LFS ever starts getting used during builds, switch this to true!
           lfs: true
-
-      - name: Harden git for flaky remotes
-        run: |
-          git config --global http.postBuffer 524288000
-          git config --global http.lowSpeedLimit 0
-          git config --global http.lowSpeedTime 999999
-
-      - name: Initialize submodules (with retry)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 5
-          retry_wait_seconds: 15
-          command: git submodule update --init --recursive
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
