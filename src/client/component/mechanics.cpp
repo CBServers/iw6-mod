@@ -4,6 +4,8 @@
 #include "game/game.hpp"
 #include "game/dvars.hpp"
 
+#include "gsc/script_extension.hpp"
+
 #include <utils/hook.hpp>
 
 namespace mechanics
@@ -83,6 +85,30 @@ namespace mechanics
 
 			dvars::pm_improvedMechanics = game::Dvar_RegisterBool("pm_improvedMechanics", false,
 				game::DVAR_FLAG_NONE | game::DVAR_FLAG_REPLICATED, "Enable MW2 mechanics");
+
+			// force_play_weap_anim(client_num, anim_id, [both_hands])
+			gsc::add_function("force_play_weap_anim", []
+			{
+				const auto client_num = game::Scr_GetInt(0);
+				if (client_num < 0 || client_num >= 18)
+				{
+					throw std::runtime_error("invalid client number");
+				}
+
+				auto* client = game::mp::g_entities[client_num].client;
+				if (client == nullptr)
+				{
+					throw std::runtime_error("not a player entity");
+				}
+
+				const auto anim_id = game::Scr_GetInt(1);
+				client->ps.weapState[game::WEAPON_HAND_RIGHT].weapAnim = anim_id;
+
+				if (game::Scr_GetNumParam() > 2 && game::Scr_GetInt(2))
+				{
+					client->ps.weapState[game::WEAPON_HAND_LEFT].weapAnim = anim_id;
+				}
+			});
 		}
 	};
 }
