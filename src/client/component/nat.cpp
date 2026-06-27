@@ -370,6 +370,12 @@ namespace nat
 		return get_local_candidate();
 	}
 
+	void get_rendezvous(std::string& host, int& port)
+	{
+		host = rendezvous_ip ? rendezvous_ip->current.string : "master.cbservers.xyz";
+		port = rendezvous_port ? atoi(rendezvous_port->current.string) : 20810;
+	}
+
 	void begin_join(const std::string& token, const std::string& fallback_address)
 	{
 		punch = punch_attempt{};

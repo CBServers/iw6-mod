@@ -12,6 +12,9 @@ namespace party
 
 	[[nodiscard]] int server_client_count();
 
+	// The connected server's hostname; empty unless we're a pure client on a public dedicated server.
+	[[nodiscard]] std::string get_public_server_name();
+
 	[[nodiscard]] int get_client_count();
 	[[nodiscard]] int get_bot_count();
 
