@@ -181,6 +181,12 @@ namespace discord
 		// True once the game can act on a connect; routing one before this (cold-launch mid-load) crashes.
 		bool join_ready()
 		{
+			// SP can't join MP sessions, and Live_SyncOnlineDataFlags is MP-only.
+			if (game::environment::is_sp())
+			{
+				return false;
+			}
+
 			return game_initialized.load() && game::Live_SyncOnlineDataFlags(0) == 0;
 		}
 
@@ -353,15 +359,27 @@ namespace discord
 			return state; // menu => empty map
 		}
 
+		// SP: Com_GetCurrentCoDPlayMode/UI_Localize*/cgArray are MP-only symbols (null in SP).
+		if (game::environment::is_sp())
+		{
+			state.mode = "sp";
+			// ui_mapname is MP-only; the engine's mapname dvar holds the SP level.
+			const auto* sp_map = game::Dvar_FindVar("mapname");
+			state.mapname = sp_map && sp_map->current.string ? sp_map->current.string : std::string{};
+			state.map_display = truncate(strip_colors(state.mapname), 128);
+			return state;
+		}
+
 		const auto* mapname_dvar = game::Dvar_FindVar("ui_mapname");
-		const auto* gametype_dvar = game::Dvar_FindVar("ui_gametype");
 		const std::string mapname = mapname_dvar ? mapname_dvar->current.string : std::string{};
+		state.mapname = mapname;
+
+		const auto* gametype_dvar = game::Dvar_FindVar("ui_gametype");
 		const std::string gametype = gametype_dvar ? gametype_dvar->current.string : std::string{};
 
 		const auto mode = game::Com_GetCurrentCoDPlayMode();
 		state.mode = mode == game::CODPLAYMODE_ALIENS ? "ext" : "mp";
 
-		state.mapname = mapname;
 		state.map_display = mapname.empty()
 			                    ? std::string{}
 			                    : truncate(strip_colors(game::UI_LocalizeMapname(mapname.data())), 128);
