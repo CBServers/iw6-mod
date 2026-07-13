@@ -2,7 +2,6 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
-#include "command.hpp"
 #include "console.hpp"
 #include "discord.hpp"
 #include "nat.hpp"
@@ -27,9 +26,6 @@ namespace discord
 
 		DiscordRichPresence discord_presence;
 
-		std::mutex pending_join_mutex;
-		std::string pending_join_secret;
-
 		// Invite-driven joins wait here until the game is ready to act on a connect.
 		std::mutex pending_route_mutex;
 		std::optional<std::pair<std::string, std::string>> pending_route; // (token, address)
@@ -40,8 +36,7 @@ namespace discord
 		// Launcher-ownership handoff. wire_* is set from the IPC IO thread; the rest is main-thread only.
 		constexpr auto OWNERSHIP_RELEASE_GRACE = 5s;
 		std::atomic_bool wire_launcher_owns{false};
-		bool effective_launcher_owns = false;
-		bool presence_silent = false;
+		bool effective_launcher_owns = false; // native RPC stays silent while true
 		bool release_pending = false;
 		std::chrono::steady_clock::time_point release_deadline{};
 
@@ -85,11 +80,10 @@ namespace discord
 				return endpoint;
 			}
 
-			// Client on a directly-reachable server: advertise it (token will be "-").
-			const auto& connected = party::get_target();
-			if (network::is_connectable_address(connected) && !network::is_private_ip(connected))
+			// Client on a public dedi: advertise it (token "-"); the name check rejects stale/private connection state.
+			if (!party::get_public_server_name().empty())
 			{
-				return network::address_to_string(connected);
+				return network::address_to_string(party::get_target());
 			}
 
 			return {};
@@ -143,39 +137,26 @@ namespace discord
 			return true;
 		}
 
-		// Native Discord RPC join: the secret arrives late (menu already up), so route now.
-		void process_pending_join()
+		// Route a structured join: token "-"/empty => direct connect, else NAT punch. Main pipeline only.
+		void route_join(const std::string& token, const std::string& address)
 		{
-			std::string secret;
+			if (token.empty() || token == "-")
 			{
-				std::lock_guard<std::mutex> lock(pending_join_mutex);
-				secret = std::move(pending_join_secret);
-				pending_join_secret.clear();
-			}
-
-			if (secret.empty())
-			{
-				return;
-			}
-
-			std::string token;
-			std::string address;
-			if (!parse_join_secret(secret, token, address))
-			{
-				// Legacy/raw-address invite (pre-token secrets were just "ip:port").
-				const auto parsed = network::address_from_string(secret);
-				if (network::is_connectable_address(parsed))
+				// party::connect directly; skips a command-buffer round trip.
+				const auto target = network::address_from_string(address);
+				if (network::is_connectable_address(target))
 				{
-					command::execute("connect " + network::address_to_string(parsed));
+					party::connect(target);
 				}
 				else
 				{
-					console::error("Discord: invalid join secret\n");
+					console::error("Discord: invalid join address\n");
 				}
 				return;
 			}
 
-			route_join(token, address);
+			// Hole-punch toward the host; falls back to `address` (port-forward/VPN).
+			nat::begin_join(token, address);
 		}
 
 		// True once the game can act on a connect; routing one before this (cold-launch mid-load) crashes.
@@ -193,31 +174,22 @@ namespace discord
 		// Drains an invite-driven join, but only once join_ready().
 		void process_pending_route()
 		{
-			{
-				std::lock_guard<std::mutex> lock(pending_route_mutex);
-				if (!pending_route)
-				{
-					return;
-				}
-			}
-
 			if (!join_ready())
 			{
 				return; // engine still coming up; keep waiting
 			}
 
-			std::pair<std::string, std::string> route;
+			std::optional<std::pair<std::string, std::string>> route;
 			{
 				std::lock_guard<std::mutex> lock(pending_route_mutex);
-				if (!pending_route)
-				{
-					return;
-				}
-				route = std::move(*pending_route);
+				route = std::move(pending_route);
 				pending_route.reset();
 			}
 
-			route_join(route.first, route.second);
+			if (route)
+			{
+				route_join(route->first, route->second);
+			}
 		}
 
 		void join_game(const char* join_secret)
@@ -227,8 +199,24 @@ namespace discord
 				return;
 			}
 
-			std::lock_guard<std::mutex> lock(pending_join_mutex);
-			pending_join_secret = join_secret;
+			std::string token;
+			std::string address;
+			if (!parse_join_secret(join_secret, token, address))
+			{
+				// Legacy/raw-address invite (pre-token secrets were just "ip:port").
+				const auto parsed = network::address_from_string(join_secret);
+				if (!network::is_connectable_address(parsed))
+				{
+					console::error("Discord: invalid join secret\n");
+					return;
+				}
+
+				token = "-";
+				address = network::address_to_string(parsed);
+			}
+
+			// Queue like launcher joins; process_pending_route routes once join_ready().
+			queue_join(token, address);
 		}
 
 		// Drives the native<->silent handoff, debounced on release so a launcher restart doesn't flicker.
@@ -240,7 +228,6 @@ namespace discord
 				if (!effective_launcher_owns)
 				{
 					effective_launcher_owns = true;
-					presence_silent = true;
 					Discord_ClearPresence(); // clear once on entry; keep the connection initialized
 				}
 				return;
@@ -261,15 +248,14 @@ namespace discord
 
 			if (now >= release_deadline)
 			{
-				effective_launcher_owns = false;
+				effective_launcher_owns = false; // native RPC resumes on the next update_discord tick
 				release_pending = false;
-				presence_silent = false; // native RPC resumes on the next update_discord tick
 			}
 		}
 
 		void update_discord()
 		{
-			if (presence_silent)
+			if (effective_launcher_owns)
 			{
 				return; // launcher owns presence; stay silent but connected
 			}
@@ -433,19 +419,6 @@ namespace discord
 		return transport;
 	}
 
-	void route_join(const std::string& token, const std::string& address)
-	{
-		// "-" / empty token => friend is on a directly reachable server.
-		if (token.empty() || token == "-")
-		{
-			command::execute("connect " + address);
-			return;
-		}
-
-		// Hole-punch toward the host; falls back to `address` (port-forward/VPN).
-		nat::begin_join(token, address);
-	}
-
 	void queue_join(const std::string& token, const std::string& address)
 	{
 		std::lock_guard<std::mutex> lock(pending_route_mutex);
@@ -484,15 +457,13 @@ namespace discord
 			}, scheduler::pipeline::main);
 
 			scheduler::loop(update_discord, scheduler::pipeline::main, 5s);
-			scheduler::loop(ownership_tick, scheduler::pipeline::main, 250ms);
-			scheduler::loop(process_pending_route, scheduler::pipeline::main, 250ms);
 
-			// Discord callbacks (and the resulting joins) must run on the main thread,
-			// since join handling drives the NAT punch and the game's network socket.
+			// Callbacks and join routing drive the NAT punch and game socket; main thread only.
 			scheduler::loop([]
 			{
+				ownership_tick();
 				Discord_RunCallbacks();
-				process_pending_join();
+				process_pending_route();
 			}, scheduler::pipeline::main, 250ms);
 
 			initialized_ = true;
@@ -518,7 +489,7 @@ namespace discord
 			discord_presence.instance = 1;
 
 			// Don't prime a card while the launcher owns presence (e.g. a Discord reconnect mid-session).
-			if (!presence_silent)
+			if (!effective_launcher_owns)
 			{
 				Discord_UpdatePresence(&discord_presence);
 			}

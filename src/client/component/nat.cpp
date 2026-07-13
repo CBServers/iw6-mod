@@ -6,12 +6,14 @@
 #include "console.hpp"
 #include "nat.hpp"
 #include "network.hpp"
+#include "party.hpp"
 #include "scheduler.hpp"
 
+#include <utils/cryptography.hpp>
 #include <utils/string.hpp>
 
-#include <random>
-#include <sstream>
+#include <atomic>
+#include <mutex>
 
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
@@ -39,9 +41,16 @@ namespace nat
 			std::string fallback_address{}; // joiner-only: tried on timeout
 			std::vector<game::netadr_s> candidates{};
 			std::chrono::steady_clock::time_point deadline{};
+			std::chrono::steady_clock::time_point next_rendezvous_retry{}; // joiner: privJoin until candidates arrive
 		};
 
 		punch_attempt punch{};
+
+		// The rendezvous DNS result, resolved off-thread; guarded by rendezvous_mutex.
+		std::mutex rendezvous_mutex;
+		std::string rendezvous_key;     // "host:port" the cache was resolved for
+		std::string rendezvous_numeric; // resolved "ip:port", empty if resolution failed
+		std::atomic_bool rendezvous_resolving{false};
 
 		// A listen-server private match: a local server is running, we're in-game (not the
 		// frontend menu, where SV_Loaded can also be true), and we're not a dedicated server.
@@ -50,11 +59,64 @@ namespace nat
 			return game::SV_Loaded() && game::CL_IsCgameInitialized() && !game::environment::is_dedi();
 		}
 
+		// Blocking; async pipeline only.
+		std::string resolve_ipv4(const std::string& host)
+		{
+			addrinfo hints{};
+			hints.ai_family = AF_INET;
+			hints.ai_socktype = SOCK_DGRAM;
+
+			addrinfo* result = nullptr;
+			if (getaddrinfo(host.data(), nullptr, &hints, &result) != 0 || !result)
+			{
+				return {};
+			}
+
+			char buffer[INET_ADDRSTRLEN]{};
+			inet_ntop(AF_INET, &reinterpret_cast<sockaddr_in*>(result->ai_addr)->sin_addr, buffer, sizeof(buffer));
+			freeaddrinfo(result);
+			return buffer;
+		}
+
+		// Non-blocking: uses the cached DNS result and kicks an async resolve when it's missing/stale.
 		bool get_rendezvous_server(game::netadr_s& address)
 		{
-			const auto* ip = rendezvous_ip->current.string;
-			const auto* port = rendezvous_port->current.string;
-			address = network::address_from_string(utils::string::va("%s:%s", ip, port));
+			if (!rendezvous_ip || !rendezvous_port)
+			{
+				return false;
+			}
+
+			const std::string key = utils::string::va("%s:%s",
+				rendezvous_ip->current.string, rendezvous_port->current.string);
+
+			std::string numeric;
+			{
+				std::lock_guard<std::mutex> lock(rendezvous_mutex);
+				if (rendezvous_key == key)
+				{
+					numeric = rendezvous_numeric;
+				}
+			}
+
+			if (numeric.empty())
+			{
+				if (!rendezvous_resolving.exchange(true))
+				{
+					scheduler::once([key]
+					{
+						const auto sep = key.rfind(':');
+						const auto ip = resolve_ipv4(key.substr(0, sep));
+
+						std::lock_guard<std::mutex> lock(rendezvous_mutex);
+						rendezvous_key = key;
+						rendezvous_numeric = ip.empty() ? std::string{} : ip + key.substr(sep);
+						rendezvous_resolving = false;
+					}, scheduler::pipeline::async);
+				}
+				return false;
+			}
+
+			address = network::address_from_string(numeric);
 			return address.type != game::NA_BAD;
 		}
 
@@ -162,50 +224,34 @@ namespace nat
 			return vpn_ip.empty() ? std::string{} : make_address(vpn_ip, get_local_port());
 		}
 
-		std::vector<std::string> gather_candidates()
+		struct endpoint_candidates
 		{
-			std::vector<std::string> candidates;
-			if (auto lan = get_local_candidate(); !lan.empty())
+			std::string lan;
+			std::string vpn;
+		};
+
+		// LAN/VPN probes (socket + adapter enumeration) are syscall-heavy; refresh at most once a minute.
+		const endpoint_candidates& get_candidates()
+		{
+			static endpoint_candidates cached{};
+			static std::chrono::steady_clock::time_point expiry{};
+
+			const auto now = std::chrono::steady_clock::now();
+			if (now >= expiry)
 			{
-				candidates.push_back(std::move(lan));
+				cached.lan = get_local_candidate();
+				cached.vpn = get_vpn_candidate();
+				expiry = now + 60s;
 			}
 
-			if (auto vpn = get_vpn_candidate(); !vpn.empty())
-			{
-				candidates.push_back(std::move(vpn));
-			}
-
-			return candidates;
+			return cached;
 		}
 
 		std::string generate_token()
 		{
-			static constexpr char hex[] = "0123456789abcdef";
-			std::random_device rd;
-			std::mt19937_64 gen(rd());
-			std::uniform_int_distribution<int> dist(0, 15);
-
-			std::string token;
-			token.reserve(16);
-			for (int i = 0; i < 16; ++i)
-			{
-				token.push_back(hex[dist(gen)]);
-			}
-
-			return token;
-		}
-
-		std::vector<std::string> split_ws(const std::string& text)
-		{
-			std::vector<std::string> out;
-			std::istringstream stream(text);
-			std::string token;
-			while (stream >> token)
-			{
-				out.push_back(token);
-			}
-
-			return out;
+			uint8_t data[8]{};
+			utils::cryptography::random::get_data(data, sizeof(data));
+			return utils::string::dump_hex(std::string(reinterpret_cast<char*>(data), sizeof(data)), "");
 		}
 
 		void send_to_rendezvous(const std::string& command, const std::string& token)
@@ -218,9 +264,14 @@ namespace nat
 			}
 
 			auto data = token;
-			for (const auto& candidate : gather_candidates())
+			const auto& candidates = get_candidates();
+			if (!candidates.lan.empty())
 			{
-				data += " " + candidate;
+				data += " " + candidates.lan;
+			}
+			if (!candidates.vpn.empty())
+			{
+				data += " " + candidates.vpn;
 			}
 
 			network::send(addr, command, data);
@@ -255,7 +306,17 @@ namespace nat
 		void issue_connect(const std::string& address)
 		{
 			console::info("[nat] connecting to %s\n", address.data());
-			command::execute("connect " + address);
+
+			// party::connect directly; skips a command-buffer round trip.
+			const auto target = network::address_from_string(address);
+			if (network::is_connectable_address(target))
+			{
+				party::connect(target);
+			}
+			else
+			{
+				console::error("[nat] refusing to connect to unconnectable address %s\n", address.data());
+			}
 		}
 
 		void show_join_error()
@@ -268,6 +329,11 @@ namespace nat
 		{
 			for (const auto& candidate : candidate_strings)
 			{
+				if (candidate.empty())
+				{
+					continue;
+				}
+
 				add_candidate(network::address_from_string(candidate));
 			}
 		}
@@ -277,6 +343,14 @@ namespace nat
 			if (!punch.active)
 			{
 				return;
+			}
+
+			// Retry privJoin (UDP loss / DNS still resolving) until the rendezvous answers with candidates.
+			const auto now = std::chrono::steady_clock::now();
+			if (punch.joining && punch.candidates.empty() && now >= punch.next_rendezvous_retry)
+			{
+				send_to_rendezvous("privJoin", punch.token);
+				punch.next_rendezvous_retry = now + 1s;
 			}
 
 			if (std::chrono::steady_clock::now() > punch.deadline)
@@ -362,12 +436,8 @@ namespace nat
 			return observed_public_endpoint;
 		}
 
-		if (auto vpn = get_vpn_candidate(); !vpn.empty())
-		{
-			return vpn;
-		}
-
-		return get_local_candidate();
+		const auto& candidates = get_candidates();
+		return !candidates.vpn.empty() ? candidates.vpn : candidates.lan;
 	}
 
 	void get_rendezvous(std::string& host, int& port)
@@ -384,6 +454,7 @@ namespace nat
 		punch.token = token;
 		punch.fallback_address = fallback_address;
 		punch.deadline = std::chrono::steady_clock::now() + 12s;
+		punch.next_rendezvous_retry = std::chrono::steady_clock::now() + 1s;
 
 		console::info("[nat] joining token=%s (fallback=%s)\n", token.data(),
 			fallback_address.empty() ? "none" : fallback_address.data());
@@ -408,6 +479,9 @@ namespace nat
 					game::DVAR_FLAG_NONE, "Port of the private-game rendezvous server");
 				nat_open_dvar = game::Dvar_RegisterBool("nat_open", false, game::DVAR_FLAG_NONE,
 					"Allow friends to join this private match");
+
+				game::netadr_s warm{};
+				get_rendezvous_server(warm); // kick the async DNS resolve so first use hits the cache
 			}, scheduler::pipeline::main);
 
 			network::on("privRegisterAck", [](const game::netadr_s&, const std::string& data)
@@ -423,7 +497,7 @@ namespace nat
 			// privPeer payload: "<token> <cand1> <cand2> ..."
 			network::on("privPeer", [](const game::netadr_s&, const std::string& data)
 			{
-				const auto fields = split_ws(data);
+				const auto fields = utils::string::split(data, ' ');
 				if (fields.empty())
 				{
 					return;
@@ -440,11 +514,14 @@ namespace nat
 				}
 				else if (!host_token.empty() && token == host_token)
 				{
-					// Host: punch toward the joiner so our NAT opens. No connect.
-					punch = punch_attempt{};
-					punch.active = true;
-					punch.joining = false;
-					punch.token = token;
+					// Host: punch toward the joiner so our NAT opens (no connect); merge if already punching.
+					if (!punch.active || punch.joining)
+					{
+						punch = punch_attempt{};
+						punch.active = true;
+						punch.joining = false;
+						punch.token = token;
+					}
 					punch.deadline = std::chrono::steady_clock::now() + 10s;
 					feed_candidates(candidates);
 					send_punch_round();

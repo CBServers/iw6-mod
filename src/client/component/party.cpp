@@ -619,8 +619,8 @@ namespace party
 					return;
 				}
 
-				// Only block when explicitly closed ("0"); a missing field stays joinable.
-				if (info.get("joinable") == "0")
+				// Block only when explicitly closed ("0", never sent by dedis/older builds); LAN/loopback stay joinable.
+				if (info.get("joinable") == "0" && network::is_valid_public_ip(target))
 				{
 					const auto* error_msg = "This match is not open to joining. Ask the host to open it from the pause menu.";
 					console::error("%s\n", error_msg);
