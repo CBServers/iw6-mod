@@ -89,6 +89,38 @@ namespace discord
 			return {};
 		}
 
+		// Identity of the match we're in, derived so the host and every joiner land on the same value.
+		// Private matches key on the punch token, public dedis on the address all clients already agree
+		// on. The joined token precedes the address so a punched host is never mistaken for a dedi.
+		std::string get_match_id()
+		{
+			if (!game::CL_IsCgameInitialized())
+			{
+				return {};
+			}
+
+			std::string key;
+			// Hosted token, not the active one: identity has to survive a close to friends.
+			if (const auto host_token = nat::hosted_session_token(); !host_token.empty())
+			{
+				key = "t:" + host_token;
+			}
+			else if (const auto token = nat::joined_session_token(); !token.empty())
+			{
+				key = "t:" + token;
+			}
+			else if (!party::get_public_server_name().empty())
+			{
+				key = "a:" + network::address_to_string(party::get_target());
+			}
+			else
+			{
+				return {};
+			}
+
+			return utils::string::va("%08X", utils::cryptography::jenkins_one_at_a_time::compute(key));
+		}
+
 		std::string make_join_secret(const std::string& address)
 		{
 			if (address.empty())
@@ -386,6 +418,8 @@ namespace discord
 			state.max_players = max_clients;
 		}
 
+		state.match_id = get_match_id();
+
 		return state;
 	}
 
@@ -456,7 +490,7 @@ namespace discord
 				game_initialized = true;
 			}, scheduler::pipeline::main);
 
-			scheduler::loop(update_discord, scheduler::pipeline::main, 5s);
+			scheduler::loop(update_discord, scheduler::pipeline::main, 2s);
 
 			// Callbacks and join routing drive the NAT punch and game socket; main thread only.
 			scheduler::loop([]

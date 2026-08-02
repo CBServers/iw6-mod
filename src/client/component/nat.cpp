@@ -27,9 +27,14 @@ namespace nat
 		game::dvar_t* rendezvous_port{};
 		game::dvar_t* nat_open_dvar{};
 
+		constexpr auto JOINED_TOKEN_GRACE = 15s;
+
 		// All state below is touched only on the main thread, so no locking is needed.
 		bool hosting_enabled{}; // host opted in via nat_host; mirrored into the nat_open dvar
 		std::string host_token{}; // non-empty while hosting
+		std::string hosted_token{}; // last host_token, retained across a close so the match keeps its identity
+		std::string joined_token{}; // token of the punched session we joined; cleared when we leave
+		std::chrono::steady_clock::time_point joined_token_deadline{};
 		std::string observed_public_endpoint{}; // our public endpoint, reflected by the rendezvous
 
 		struct punch_attempt
@@ -312,6 +317,14 @@ namespace nat
 			if (network::is_connectable_address(target))
 			{
 				party::connect(target);
+
+				// Adopt the host's token as our match identity only once we actually connect, so a
+				// punch that never lands can't mislabel the match we're still sitting in.
+				if (punch.joining)
+				{
+					joined_token = punch.token;
+					joined_token_deadline = std::chrono::steady_clock::now() + JOINED_TOKEN_GRACE;
+				}
 			}
 			else
 			{
@@ -338,8 +351,31 @@ namespace nat
 			}
 		}
 
+		// Retires the joined session's identity once we're out of a match (there is no disconnect
+		// hook). Grace-period based: map changes drop the in-game flag briefly, and losing the token
+		// on every load screen would silently disable same-match detection for the rest of the session.
+		void update_joined_session()
+		{
+			if (joined_token.empty())
+			{
+				return;
+			}
+
+			const auto now = std::chrono::steady_clock::now();
+			if (punch.active || game::CL_IsCgameInitialized())
+			{
+				joined_token_deadline = now + JOINED_TOKEN_GRACE;
+			}
+			else if (now >= joined_token_deadline)
+			{
+				joined_token.clear();
+			}
+		}
+
 		void punch_frame()
 		{
+			update_joined_session();
+
 			if (!punch.active)
 			{
 				return;
@@ -394,11 +430,18 @@ namespace nat
 		// is_hosting() excludes the frontend menu, where SV_Loaded is also true.
 		void update_host_session()
 		{
+			if (!is_hosting())
+			{
+				// Left the match: the identity dies with it, unlike a mere close to friends.
+				hosted_token.clear();
+			}
+
 			if (is_hosting() && hosting_enabled)
 			{
 				if (host_token.empty())
 				{
 					host_token = generate_token();
+					hosted_token = host_token;
 					console::info("[nat] opened private match to friends, token=%s\n", host_token.data());
 				}
 
@@ -420,6 +463,16 @@ namespace nat
 	std::string current_token()
 	{
 		return host_token;
+	}
+
+	std::string hosted_session_token()
+	{
+		return hosted_token;
+	}
+
+	std::string joined_session_token()
+	{
+		return joined_token;
 	}
 
 	std::string get_host_endpoint()
@@ -448,6 +501,7 @@ namespace nat
 
 	void begin_join(const std::string& token, const std::string& fallback_address)
 	{
+		joined_token.clear(); // re-adopted in issue_connect once the join actually lands
 		punch = punch_attempt{};
 		punch.active = true;
 		punch.joining = true;

@@ -63,6 +63,7 @@ namespace ipc
 			add("mode", state.mode);
 			add("gametype", state.gametype);
 			add("serverName", state.server_name);
+			add("matchId", state.match_id);
 			doc.AddMember(rapidjson::StringRef("players"), state.players, allocator);
 			doc.AddMember(rapidjson::StringRef("maxPlayers"), state.max_players, allocator);
 
@@ -357,7 +358,7 @@ namespace ipc
 
 			stop_io = false;
 			io_thread = utils::thread::create_named_thread("IPC", io_loop);
-			scheduler::loop(send_presence, scheduler::pipeline::main, 5s);
+			scheduler::loop(send_presence, scheduler::pipeline::main, 2s);
 		}
 
 		void pre_destroy() override
