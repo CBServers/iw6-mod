@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/engine/sv_game.hpp"
 
 #include "game/scripting/entity.hpp"
 #include "game/scripting/execution.hpp"
@@ -8,10 +9,12 @@
 #include "command.hpp"
 #include "game_log.hpp"
 #include "notifies.hpp"
+#include "roles.hpp"
 #include "scheduler.hpp"
 #include "scripting.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace notifies
 {
@@ -80,12 +83,19 @@ namespace notifies
 						message.data()
 					);
 
+					if (!hidden)
+					{
+						const std::string name = player.get("name").as<std::string>();
+						const char* tag = roles::get_role_tag(client_num);
+						const char* line = tag
+							? utils::string::va("%c \"%s %s: %s\"", 84, tag, name.data(), notify_msg.data())
+							: utils::string::va("%c \"%s: %s\"", 84, name.data(), notify_msg.data());
+						game::engine::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE, line);
+					}
+
 				}, scheduler::pipeline::server);
 
-				if (hidden)
-				{
-					return;
-				}
+				return;
 			}
 
 			// ClientCommand

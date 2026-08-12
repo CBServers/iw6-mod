@@ -30,4 +30,7 @@ namespace scripting
 	script_value get_entity_field(const entity& entity, const std::string& field);
 
 	void notify(const entity& entity, const std::string& event, const std::vector<script_value>& arguments);
+
+	void return_value(const script_value& value);
+	script_value get_argument(int index);
 }

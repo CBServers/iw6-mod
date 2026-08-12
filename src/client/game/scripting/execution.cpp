@@ -59,6 +59,26 @@ namespace scripting
 		}
 	}
 
+	void return_value(const script_value& value)
+	{
+		if (game::scr_VmPub->outparamcount)
+		{
+			game::Scr_ClearOutParams();
+		}
+
+		push_value(value);
+	}
+
+	script_value get_argument(const int index)
+	{
+		if (index < 0 || index >= static_cast<int>(game::scr_VmPub->inparamcount))
+		{
+			return {};
+		}
+
+		return script_value(game::scr_VmPub->top[index + 1 - static_cast<int>(game::scr_VmPub->inparamcount)]);
+	}
+
 	void notify(const entity& entity, const std::string& event, const std::vector<script_value>& arguments)
 	{
 		stack_isolation _;
