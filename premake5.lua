@@ -259,6 +259,8 @@ end
 
 flags {"NoIncrementalLink", "NoMinimalRebuild", "MultiProcessorCompile", "No64BitChecks"}
 
+buildoptions {"/utf-8"}
+
 filter "platforms:x64"
 	defines {"_WINDOWS", "WIN32"}
 filter {}
@@ -311,7 +313,7 @@ linkoptions {"/IGNORE:4254", "/DYNAMICBASE:NO", "/SAFESEH:NO", "/LARGEADDRESSAWA
 
 files {"./src/client/**.rc", "./src/client/**.hpp", "./src/client/**.cpp", "./src/client/resources/**.*"}
 
-includedirs {"./src/client", "./src/common", "%{prj.location}/src"}
+includedirs {"./src/client", "./src/common", "%{prj.location}/src", "./deps/json/single_include"}
 
 resincludedirs {"$(ProjectDir)src"}
 

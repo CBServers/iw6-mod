@@ -118,6 +118,54 @@ namespace utils::http
 		return {};
 	}
 
+	std::optional<std::string> post_data(const std::string& url, const std::string& body, const headers& headers,
+	                                     const uint32_t retries)
+	{
+		curl_slist* header_list = nullptr;
+		auto* curl = curl_easy_init();
+		if (!curl)
+		{
+			return {};
+		}
+
+		auto _ = gsl::finally([&]
+		{
+			curl_slist_free_all(header_list);
+			curl_easy_cleanup(curl);
+		});
+
+		for (const auto& header : headers)
+		{
+			auto data = header.first + ": " + header.second;
+			header_list = curl_slist_append(header_list, data.data());
+		}
+
+		std::string buffer{};
+
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+		curl_easy_setopt(curl, CURLOPT_URL, url.data());
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.data());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "xlabs-updater/1.0");
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+		for (auto i = 0u; i < retries + 1; ++i)
+		{
+			buffer.clear();
+			if (curl_easy_perform(curl) == CURLE_OK)
+			{
+				return {std::move(buffer)};
+			}
+		}
+
+		return {};
+	}
+
 	std::future<std::optional<std::string>> get_data_async(const std::string& url, const headers& headers)
 	{
 		return std::async(std::launch::async, [url, headers]()
