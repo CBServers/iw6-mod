@@ -11,10 +11,14 @@
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
 
+#include <version.hpp>
+
 #define UPDATE_SERVER "https://github.com/CBServers/updater/raw/main/updater/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "iw6x.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "iw6x/"
+#define UPDATE_FILE_DEV UPDATE_SERVER "iw6x-dev.json"
+#define UPDATE_FOLDER_DEV UPDATE_SERVER "iw6x-dev/"
 #define UPDATE_HOST_BINARY "iw6x.exe"
 
 namespace updater
@@ -23,11 +27,19 @@ namespace updater
 	{
 		std::string get_update_file()
 		{
+			if (GIT_BRANCH == "develop"s)
+			{
+				return UPDATE_FILE_DEV;
+			}
 			return UPDATE_FILE_MAIN;
 		}
 
 		std::string get_update_folder()
 		{
+			if (GIT_BRANCH == "develop"s)
+			{
+				return UPDATE_FOLDER_DEV;
+			}
 			return UPDATE_FOLDER_MAIN;
 		}
 
