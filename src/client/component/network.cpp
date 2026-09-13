@@ -215,6 +215,30 @@ namespace network
 			&& ::ntohs(address.port) >= 1024;
 	}
 
+	uint16_t get_bound_port()
+	{
+		// The engine binds the socket itself (NET_OpenIP), so ask the socket rather than tracking the bind.
+		if (!game::environment::is_mp())
+		{
+			return 0;
+		}
+
+		const auto sock = *game::query_socket;
+		if (sock == 0 || sock == INVALID_SOCKET)
+		{
+			return 0;
+		}
+
+		sockaddr_in local{};
+		int length = sizeof(local);
+		if (getsockname(sock, reinterpret_cast<sockaddr*>(&local), &length) != 0)
+		{
+			return 0;
+		}
+
+		return ::ntohs(local.sin_port);
+	}
+
 	void set_xuid_config_string_stub(utils::hook::assembler& a)
 	{
 		const auto return_regular = a.newLabel();

@@ -7,12 +7,15 @@
 #include "command.hpp"
 #include "console.hpp"
 #include "dvars.hpp"
+#include "nat.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "server_list.hpp"
 #include "party.hpp"
 
 #include "steam/steam.hpp"
+
+#include "game/ui_scripting/execution.hpp"
 
 #include <utils/string.hpp>
 #include <utils/info_string.hpp>
@@ -92,6 +95,7 @@ namespace party
 			info.set("gametype", dvars::get_string("g_gametype"));
 			info.set("sv_motd", dvars::get_string("sv_motd"));
 			info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
+			info.set("dedicated", game::environment::is_dedi() ? "1" : "0");
 			info.set("mapname", dvars::get_string("mapname"));
 			info.set("isPrivate", dvars::get_string("g_password").empty() ? "0" : "1");
 			info.set("joinable", (game::environment::is_dedi() || game::Dvar_GetBool("nat_open")) ? "1" : "0");
@@ -589,6 +593,23 @@ namespace party
 					const auto* error_msg = "Invalid challenge.";
 					console::error("%s\n", error_msg);
 					game::Com_Error(game::ERR_DROP, "%s", error_msg);
+					return;
+				}
+
+				// Our own xuid means the address hairpinned back to this machine's port mapping.
+				const auto own_xuid = utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits);
+				if (info.get("dedicated") != "1"s && utils::string::to_lower(info.get("xuid")) == utils::string::to_lower(own_xuid))
+				{
+					if (nat::on_self_connect(target))
+					{
+						ui_scripting::leave_menu("popup_acceptinginvite");
+					}
+					else
+					{
+						const auto* error_msg = "That address points back at your own game. Ask the host to check their port forwarding.";
+						console::error("%s\n", error_msg);
+						game::Com_Error(game::ERR_DROP, "%s", error_msg);
+					}
 					return;
 				}
 

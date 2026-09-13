@@ -133,6 +133,32 @@ namespace ui_scripting
 		return false;
 	}
 
+	bool leave_menu(const std::string& name)
+	{
+		const auto state = *game::hks::lua_state;
+		if (state == nullptr)
+		{
+			return false;
+		}
+
+		const auto _0 = gsl::finally(game::LUI_LeaveCriticalSection);
+		game::LUI_EnterCriticalSection();
+
+		try
+		{
+			const auto globals = table((*::game::hks::lua_state)->globals.v.table);
+			const auto flow_manager = globals.get("LUI").as<table>().get("FlowManager").as<table>();
+			flow_manager.get("RequestLeaveMenuByName")(name);
+			return true;
+		}
+		catch (const std::exception& ex)
+		{
+			console::error("Error leaving menu '%s' %s\n", name.data(), ex.what());
+		}
+
+		return false;
+	}
+
 	arguments call_script_function(const function& function, const arguments& arguments)
 	{
 		const auto state = *game::hks::lua_state;

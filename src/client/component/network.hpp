@@ -19,6 +19,9 @@ namespace network
 	bool is_private_ip(const game::netadr_s& address);
 	bool is_valid_public_ip(const game::netadr_s& address);
 	bool is_connectable_address(const game::netadr_s& address);
+
+	// The UDP port the game socket actually bound, 0 until bound (async-safe).
+	uint16_t get_bound_port();
 }
 
 inline bool operator==(const game::netadr_s& a, const game::netadr_s& b)

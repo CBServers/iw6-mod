@@ -8,6 +8,9 @@
 #include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
+#include "upnp.hpp"
+
+#include "game/ui_scripting/execution.hpp"
 
 #include <utils/cryptography.hpp>
 #include <utils/string.hpp>
@@ -45,6 +48,7 @@ namespace nat
 			std::string token{};
 			std::string fallback_address{}; // joiner-only: tried on timeout
 			std::vector<game::netadr_s> candidates{};
+			std::vector<game::netadr_s> rejected{}; // candidates that turned out to be our own game
 			std::chrono::steady_clock::time_point deadline{};
 			std::chrono::steady_clock::time_point next_rendezvous_retry{}; // joiner: privJoin until candidates arrive
 		};
@@ -61,7 +65,7 @@ namespace nat
 		// frontend menu, where SV_Loaded can also be true), and we're not a dedicated server.
 		bool is_hosting()
 		{
-			return game::SV_Loaded() && game::CL_IsCgameInitialized() && !game::environment::is_dedi();
+			return game::environment::is_mp() && game::SV_Loaded() && game::CL_IsCgameInitialized();
 		}
 
 		// Blocking; async pipeline only.
@@ -127,6 +131,11 @@ namespace nat
 
 		uint16_t get_local_port()
 		{
+			if (const auto bound = network::get_bound_port())
+			{
+				return bound;
+			}
+
 			const auto port = game::Dvar_GetInt("net_port");
 			if (port >= 1024 && port <= 65535)
 			{
@@ -154,30 +163,7 @@ namespace nat
 
 		std::string get_local_candidate()
 		{
-			std::string ip;
-			const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-			if (sock != INVALID_SOCKET)
-			{
-				sockaddr_in target{};
-				target.sin_family = AF_INET;
-				target.sin_port = htons(53);
-				inet_pton(AF_INET, "8.8.8.8", &target.sin_addr);
-
-				if (connect(sock, reinterpret_cast<sockaddr*>(&target), sizeof(target)) == 0)
-				{
-					sockaddr_in local{};
-					int length = sizeof(local);
-					if (getsockname(sock, reinterpret_cast<sockaddr*>(&local), &length) == 0)
-					{
-						char buffer[INET_ADDRSTRLEN]{};
-						inet_ntop(AF_INET, &local.sin_addr, buffer, sizeof(buffer));
-						ip = buffer;
-					}
-				}
-
-				closesocket(sock);
-			}
-
+			const auto ip = get_local_ip();
 			if (ip.empty())
 			{
 				return {};
@@ -282,10 +268,56 @@ namespace nat
 			network::send(addr, command, data);
 		}
 
+		// Punching a candidate carrying one of our own IPs acks our own punch and connects us to ourselves.
+		bool is_own_address(const game::netadr_s& address)
+		{
+			const auto& own_candidates = get_candidates();
+			for (const auto& own : {own_candidates.lan, own_candidates.vpn})
+			{
+				if (own.empty())
+				{
+					continue;
+				}
+
+				// IP match alone is enough; our own IP can never reach the peer, whatever the port.
+				const auto parsed = network::address_from_string(own);
+				if (network::is_ip_address(parsed) && network::is_ip_address(address) && !memcmp(parsed.ip, address.ip, 4))
+				{
+					return true;
+				}
+			}
+
+			// Same public IP on a different port can be a real host behind our NAT (hairpin); same port is us.
+			if (!observed_public_endpoint.empty())
+			{
+				const auto parsed = network::address_from_string(observed_public_endpoint);
+				if (network::are_addresses_equal(parsed, address))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		bool is_rejected(const game::netadr_s& address)
+		{
+			return std::ranges::any_of(punch.rejected, [&](const game::netadr_s& rejected)
+			{
+				return network::are_addresses_equal(rejected, address);
+			});
+		}
+
 		void add_candidate(const game::netadr_s& address)
 		{
 			if (!network::is_ip_address(address))
 			{
+				return;
+			}
+
+			if (is_own_address(address) || is_rejected(address))
+			{
+				console::info("[nat] ignoring own-address candidate %s\n", network::address_to_string(address).data());
 				return;
 			}
 
@@ -332,10 +364,16 @@ namespace nat
 			}
 		}
 
+		// Main thread, outside the frame's error trap, so this opens the error popup directly instead of Com_Error.
 		void show_join_error()
 		{
-			console::error("[nat] could not reach the host. They may be on a restricted network (e.g. a mobile "
-				"hotspot). Ask them to host on home Wi-Fi, port-forward, or use a VPN like Radmin.\n");
+			constexpr auto message = "Could not reach the host. They may be on a restricted network (e.g. a mobile "
+				"hotspot). Ask them to host on home Wi-Fi, port-forward, or use a VPN like Radmin.";
+
+			console::error("[nat] %s\n", message);
+			ui_scripting::leave_menu("popup_acceptinginvite");
+			game::Com_SetErrorMessage(message, "MENU_ERROR");
+			game::LUI_OpenMenu(0, "error_popmenu", 1, 0, 0);
 		}
 
 		void feed_candidates(const std::vector<std::string>& candidate_strings)
@@ -415,6 +453,11 @@ namespace nat
 		void set_hosting_enabled(bool enabled)
 		{
 			hosting_enabled = enabled;
+			if (enabled)
+			{
+				upnp::ensure_mapped(); // retry a startup mapping the router was too slow for
+			}
+
 			if (nat_open_dvar)
 			{
 				game::Dvar_SetBool(nat_open_dvar, enabled);
@@ -460,6 +503,35 @@ namespace nat
 		}
 	}
 
+	std::string get_local_ip()
+	{
+		std::string ip;
+		const SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (sock != INVALID_SOCKET)
+		{
+			sockaddr_in target{};
+			target.sin_family = AF_INET;
+			target.sin_port = htons(53);
+			inet_pton(AF_INET, "8.8.8.8", &target.sin_addr);
+
+			if (connect(sock, reinterpret_cast<sockaddr*>(&target), sizeof(target)) == 0)
+			{
+				sockaddr_in local{};
+				int length = sizeof(local);
+				if (getsockname(sock, reinterpret_cast<sockaddr*>(&local), &length) == 0)
+				{
+					char buffer[INET_ADDRSTRLEN]{};
+					inet_ntop(AF_INET, &local.sin_addr, buffer, sizeof(buffer));
+					ip = buffer;
+				}
+			}
+
+			closesocket(sock);
+		}
+
+		return ip;
+	}
+
 	std::string current_token()
 	{
 		return host_token;
@@ -497,6 +569,38 @@ namespace nat
 	{
 		host = rendezvous_ip ? rendezvous_ip->current.string : "master.cbservers.xyz";
 		port = rendezvous_port ? atoi(rendezvous_port->current.string) : 20810;
+	}
+
+	bool on_self_connect(const game::netadr_s& target)
+	{
+		// Only a punched join can be resumed; a fallback or manual connect has nowhere else to go.
+		if (!punch.joining || !punch.connected || punch.token.empty())
+		{
+			return false;
+		}
+
+		console::info("[nat] %s answered with our own xuid (hairpin to our own port); resuming punch\n",
+			network::address_to_string(target).data());
+
+		punch.rejected.push_back(target);
+		std::erase_if(punch.candidates, [&](const game::netadr_s& candidate)
+		{
+			return network::are_addresses_equal(candidate, target);
+		});
+
+		if (network::are_addresses_equal(network::address_from_string(punch.fallback_address), target))
+		{
+			punch.fallback_address.clear();
+		}
+
+		// issue_connect adopted the host's token; we never actually joined.
+		joined_token.clear();
+
+		punch.connected = false;
+		punch.active = true;
+		punch.deadline = std::chrono::steady_clock::now() + 10s;
+		send_punch_round();
+		return true;
 	}
 
 	void begin_join(const std::string& token, const std::string& fallback_address)
@@ -545,6 +649,7 @@ namespace nat
 					network::is_connectable_address(parsed))
 				{
 					observed_public_endpoint = network::address_to_string(parsed);
+					upnp::on_public_endpoint(observed_public_endpoint);
 				}
 			});
 
@@ -607,6 +712,13 @@ namespace nat
 			{
 				if (!punch.active || punch.token != token || punch.connected)
 				{
+					return;
+				}
+
+				// Candidates fed before the rendezvous reflected our endpoint slip past add_candidate.
+				if (is_own_address(from) || is_rejected(from))
+				{
+					console::info("[nat] ignoring punchAck from own address %s\n", network::address_to_string(from).data());
 					return;
 				}
 

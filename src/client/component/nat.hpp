@@ -1,9 +1,13 @@
 #pragma once
 
 #include <string>
+#include "game/game.hpp"
 
 namespace nat
 {
+	// The primary adapter's LAN IP via the UDP-connect trick, "" on failure (async-safe).
+	std::string get_local_ip();
+
 	// The active host token, or "" when not hosting (session lifecycle is internal).
 	std::string current_token();
 
@@ -23,4 +27,8 @@ namespace nat
 
 	// Joiner: punch toward the host; on failure connect fallback_address, else error.
 	void begin_join(const std::string& token, const std::string& fallback_address);
+
+	// The connect query reached our own game (same-NAT hairpin): drop that candidate and keep punching.
+	// False when there is no punch to resume (main thread only).
+	bool on_self_connect(const game::netadr_s& target);
 }

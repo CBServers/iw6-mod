@@ -13,6 +13,7 @@ namespace ui_scripting
 	arguments get_return_values(game::hks::HksObject* base);
 
 	bool notify(const std::string& name, const event_arguments& arguments);
+	bool leave_menu(const std::string& name);
 
 	arguments call_script_function(const function& function, const arguments& arguments);
 
