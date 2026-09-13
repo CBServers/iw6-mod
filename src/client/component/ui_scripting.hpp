@@ -2,6 +2,9 @@
 
 namespace ui_scripting
 {
+	// True once the LUI VM is up with mod scripts loaded; false across a VM restart (main thread only).
+	bool lui_running();
+
 	template <class... Args, std::size_t... I>
 	auto wrap_function(const std::function<void(Args...)>& f, std::index_sequence<I...>)
 	{

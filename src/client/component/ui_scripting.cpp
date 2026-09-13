@@ -41,6 +41,7 @@ namespace ui_scripting
 		};
 
 		globals globals;
+		bool running{};
 
 		bool is_loaded_script(const std::string& name)
 		{
@@ -233,6 +234,8 @@ namespace ui_scripting
 			{
 				console::error("Failed to load LUI scripts: %s\n", ex.what());
 			}
+
+			running = *game::hks::lua_state != nullptr;
 		}
 
 		void* hks_start_stub(char a1)
@@ -243,6 +246,7 @@ namespace ui_scripting
 
 		void hks_shutdown_stub()
 		{
+			running = false;
 			converted_functions.clear();
 			globals = {};
 			return hks_shutdown_hook.invoke<void>();
@@ -309,6 +313,11 @@ namespace ui_scripting
 		{
 			return 0;
 		}
+	}
+
+	bool lui_running()
+	{
+		return running && *game::hks::lua_state != nullptr;
 	}
 
 	int main_handler(game::hks::lua_State* state)

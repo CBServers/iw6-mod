@@ -1,8 +1,30 @@
 #include <std_include.hpp>
 #include "steam/steam.hpp"
 
+#include "component/friends.hpp"
+
 namespace steam
 {
+	namespace
+	{
+		// 24-byte FriendGameInfo_t
+		struct friend_game_info
+		{
+			game_id game;
+			unsigned int game_ip;
+			unsigned short game_port;
+			unsigned short query_port;
+			steam_id lobby;
+		};
+
+		constexpr unsigned int IW6_MP_APP_ID = 209170;
+
+		bool find_cb_friend(const steam_id id, ::friends::friend_record& out)
+		{
+			return ::friends::find_friend(id.bits, out);
+		}
+	}
+
 	const char* friends::GetPersonaName()
 	{
 		return "GlaDos";
@@ -20,32 +42,58 @@ namespace steam
 
 	int friends::GetFriendCount(int eFriendFlags)
 	{
-		return 0;
+		return ::friends::get_count();
 	}
 
 	steam_id friends::GetFriendByIndex(int iFriend, int iFriendFlags)
 	{
-		return steam_id();
+		steam_id id{};
+		id.bits = ::friends::get_steam_id(iFriend);
+		return id;
 	}
 
 	int friends::GetFriendRelationship(steam_id steamIDFriend)
 	{
-		return 0;
+		::friends::friend_record record{};
+		return find_cb_friend(steamIDFriend, record) ? 3 : 0;
 	}
 
 	int friends::GetFriendPersonaState(steam_id steamIDFriend)
 	{
-		return 0;
+		::friends::friend_record record{};
+		return find_cb_friend(steamIDFriend, record) ? ::friends::persona_state(record) : 0;
 	}
 
 	const char* friends::GetFriendPersonaName(steam_id steamIDFriend)
 	{
-		return "";
+		::friends::friend_record record{};
+		if (!find_cb_friend(steamIDFriend, record))
+		{
+			return "";
+		}
+
+		static thread_local std::string name;
+		name = record.name;
+		return name.data();
 	}
 
+	// The native list sorts friends playing this title above everyone else.
 	bool friends::GetFriendGamePlayed(steam_id steamIDFriend, void* pFriendGameInfo)
 	{
-		return false;
+		::friends::friend_record record{};
+		if (!find_cb_friend(steamIDFriend, record) || !record.in_game)
+		{
+			return false;
+		}
+
+		if (pFriendGameInfo)
+		{
+			auto* info = static_cast<friend_game_info*>(pFriendGameInfo);
+			*info = {};
+			info->game.raw.app_id = IW6_MP_APP_ID;
+		}
+
+		return true;
 	}
 
 	const char* friends::GetFriendPersonaNameHistory(steam_id steamIDFriend, int iPersonaName)
@@ -55,7 +103,8 @@ namespace steam
 
 	bool friends::HasFriend(steam_id steamIDFriend, int eFriendFlags)
 	{
-		return false;
+		::friends::friend_record record{};
+		return find_cb_friend(steamIDFriend, record);
 	}
 
 	int friends::GetClanCount()

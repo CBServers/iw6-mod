@@ -404,7 +404,9 @@ namespace discord
 		state.gametype = gametype.empty()
 			                 ? std::string{}
 			                 : truncate(strip_colors(game::UI_LocalizeGametype(gametype.data())), 128);
+		state.gametype_raw = truncate(gametype, 64);
 		state.server_name = truncate(strip_colors(party::get_public_server_name()), 128);
+		state.openable = nat::can_open_to_friends();
 
 		const auto max_clients = game::Dvar_GetInt("sv_maxclients");
 		if (max_clients > 0)

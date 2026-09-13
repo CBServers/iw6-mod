@@ -12,6 +12,8 @@ namespace discord
 		std::string mapname;     // raw map key, empty in menu
 		std::string map_display; // friendly map name
 		std::string gametype;    // friendly gametype name
+		std::string gametype_raw; // raw gametype key, for the launcher's party-id flags
+		bool openable{false};    // hosting a private match not yet open to friends
 		std::string mode;        // short key: "mp" / "ext" / "sp"
 		std::string server_name; // public dedicated server only, else empty
 		std::string match_id;    // opaque identity of the match, shared by everyone in it

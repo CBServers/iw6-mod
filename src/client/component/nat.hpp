@@ -19,6 +19,12 @@ namespace nat
 	// same match identity as the host.
 	std::string joined_session_token();
 
+	// Host of a private match that is still closed to friends (the pause-menu toggle is off).
+	bool can_open_to_friends();
+
+	// Open the hosted private match to friends now (same as the toggle), registering with the rendezvous at once.
+	bool open_to_friends();
+
 	// The host's reachable endpoint ("ip:port") for the join-secret fallback, or "".
 	std::string get_host_endpoint();
 
