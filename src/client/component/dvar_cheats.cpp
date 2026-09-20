@@ -5,6 +5,8 @@
 #include "game/engine/sv_game.hpp"
 
 #include "console.hpp"
+#include "mechanics.hpp"
+#include "barrier_clips.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -135,6 +137,17 @@ namespace dvar_cheats
 	void set_client_dvar_by_string(const int entity_num, const char* value)
 	{
 		const auto* dvar = game::Scr_GetString(0); // grab the original dvar again since it's never stored on stack
+
+		// keep the server's authoritative per-client preferences in sync with what we push to the client
+		if (dvar == "pm_improvedMechanicsClient"s)
+		{
+			mechanics::set_client_pref(entity_num, std::atoi(value) != 0);
+		}
+		else if (dvar == "bg_disableBarrierClipsClient"s)
+		{
+			barrier_clips::set_client_pref(entity_num, std::atoi(value) != 0);
+		}
+
 		const auto* command = utils::string::va("q %s \"%s\"", dvar, value);
 
 		game::engine::SV_GameSendServerCommand(entity_num, game::SV_CMD_RELIABLE, command);
@@ -176,6 +189,9 @@ namespace dvar_cheats
 			utils::hook::nop(0x1404F0D13, 4); // let our stub handle zero-source sets
 			utils::hook::jump(0x1404F0D1A, dvar_flag_checks_stub, true); // check extra dvar flags when setting values
 
+			// NOTE: the scriptinfo check at 0x14038A53A (see gsc/script_error.cpp) is intentionally left
+			// intact. Our client dvars are registered DVAR_FLAG_SCRIPTINFO so they pass it; nopping it would
+			// let stock GSC override protected dvars like cg_fovScale on clients.
 			utils::hook::nop(0x14038A553, 5); // remove error in PlayerCmd_SetClientDvar if setting a non-network dvar
 			utils::hook::jump(0x14038A59A, player_cmd_set_client_dvar, true); // send non-network dvars as string
 			utils::hook::call(0x140287AED, cg_set_client_dvar_from_server); // check for dvars being sent as string before parsing ids

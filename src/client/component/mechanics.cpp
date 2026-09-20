@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "mechanics.hpp"
+
 #include "game/game.hpp"
 #include "game/dvars.hpp"
 
@@ -12,8 +14,38 @@ namespace mechanics
 {
 	namespace
 	{
+		constexpr auto MAX_CLIENTS = 18;
+
+		const game::dvar_t* pm_improvedMechanicsClient = nullptr;
+		const game::dvar_t* sv_running = nullptr;
+
+		// authoritative per-client preference, kept in sync server-side (see set_client_pref)
+		bool client_pref[MAX_CLIENTS] = {};
+
 		utils::hook::detour PM_BeginWeaponChange_hook;
 		utils::hook::detour PM_Weapon_CheckForChangeWeapon_hook;
+
+		bool enabled(game::mp::playerState_s* ps)
+		{
+			if (dvars::pm_improvedMechanics && dvars::pm_improvedMechanics->current.enabled)
+			{
+				return true; // server master switch forces the mechanics on for everyone
+			}
+
+			if (sv_running == nullptr)
+			{
+				sv_running = game::Dvar_FindVar("sv_running");
+			}
+
+			if (sv_running != nullptr && sv_running->current.enabled)
+			{
+				// running the authoritative sim: honour this client's own preference
+				return ps->clientNum >= 0 && ps->clientNum < MAX_CLIENTS && client_pref[ps->clientNum];
+			}
+
+			// remote client: only ever predicts the local player, so use our own local preference
+			return pm_improvedMechanicsClient != nullptr && pm_improvedMechanicsClient->current.enabled;
+		}
 
 		//mw2 mechanics thanks to @plugwalker47
 		void PM_BeginWeaponChange_stub(game::pmove_t* pm, const game::Weapon newweapon, bool isNewAlternate, bool quick, unsigned int* holdrand)
@@ -31,7 +63,7 @@ namespace mechanics
 
 			PM_BeginWeaponChange_hook.invoke<void>(pm, newweapon, isNewAlternate, quick, holdrand);
 
-			if (dvars::pm_improvedMechanics && dvars::pm_improvedMechanics->current.enabled && keepanim)
+			if (enabled(ps) && keepanim)
 			{
 				ps->weapState[0x0].weapAnim = anim;
 				ps->weapState[0x1].weapAnim = anim2;
@@ -43,7 +75,7 @@ namespace mechanics
 			game::mp::playerState_s* ps;
 			ps = static_cast<game::mp::playerState_s*>(pm->ps);
 
-			if (dvars::pm_improvedMechanics && dvars::pm_improvedMechanics->current.enabled && ps->weapon == pm->cmd.weapon && (unsigned int)(ps->weapState[0x0].weaponState - 3) <= 2 
+			if (enabled(ps) && ps->weapon == pm->cmd.weapon && (unsigned int)(ps->weapState[0x0].weaponState - 3) <= 2 
 				&& game::PM_Weapon_InValidChangeWeaponState(pm) && ps->weapFlags != 128 && ps->pm_flags != 8 && ps->pm_flags != 40)
 			{
 				if (ps->weapState[0x0].weapAnim == 30 || ps->weapState[0x0].weapAnim == 2078)
@@ -70,6 +102,14 @@ namespace mechanics
 		}
 	}
 
+	void set_client_pref(const int client_num, const bool value)
+	{
+		if (client_num >= 0 && client_num < MAX_CLIENTS)
+		{
+			client_pref[client_num] = value;
+		}
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -85,6 +125,11 @@ namespace mechanics
 
 			dvars::pm_improvedMechanics = game::Dvar_RegisterBool("pm_improvedMechanics", false,
 				game::DVAR_FLAG_NONE | game::DVAR_FLAG_REPLICATED, "Enable MW2 mechanics");
+
+			// per-client opt-in; pushed by the server via `self setclientdvar("pm_improvedMechanicsClient", 1)`
+			// SCRIPTINFO so setclientdvar accepts it without relaxing the engine's check for every other dvar
+			pm_improvedMechanicsClient = game::Dvar_RegisterBool("pm_improvedMechanicsClient", false,
+				game::DVAR_FLAG_SCRIPTINFO, "Enable MW2 mechanics for this client");
 
 			// force_play_weap_anim(client_num, anim_id, [both_hands])
 			gsc::add_function("force_play_weap_anim", []
