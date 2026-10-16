@@ -34,8 +34,9 @@ LONG WINAPI exception_handler(PEXCEPTION_POINTERS exception_info)
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 
+	// Customer-defined codes (C++ throw, msxml's 0xE0000001, ...) are raised on purpose and caught by the raiser.
 	if (exception_info->ExceptionRecord->ExceptionCode < 0x80000000 ||
-		exception_info->ExceptionRecord->ExceptionCode == 0xE06D7363)
+		(exception_info->ExceptionRecord->ExceptionCode & 0x20000000) != 0)
 	{
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
